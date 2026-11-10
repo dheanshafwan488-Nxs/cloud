@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Environment configurations
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/
+
+# Storage & logs
+backend/storage/*.key
+backend/storage/logs/*
+!backend/storage/logs/.gitkeep
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/app/public/*
+backend/storage/mysql_data/
+
+# Test cache
+.phpunit.result.cache
+
+# Operating System
+.DS_Store
+Thumbs.db
