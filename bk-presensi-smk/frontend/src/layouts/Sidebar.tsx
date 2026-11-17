@@ -91,10 +91,10 @@ const MENU_ITEMS: MenuItem[] = [
     roles: ['admin'],
   },
   {
-    label: 'Pengaturan Sekolah',
+    label: 'Pengaturan Sekolah & Bot',
     href: '/settings',
     icon: Settings,
-    roles: ['admin'],
+    roles: ['admin', 'guru_bk'],
   },
   {
     label: 'Profil Saya',

@@ -22,6 +22,22 @@ export const settingService = {
     return response.data
   },
 
+  async testTelegram(token?: string): Promise<ApiResponse<{ id: number; first_name: string; username: string }>> {
+    const response = await apiClient.post<ApiResponse<{ id: number; first_name: string; username: string }>>(
+      API_ENDPOINTS.SETTINGS.TEST_TELEGRAM,
+      { token }
+    )
+    return response.data
+  },
+
+  async testSendMessage(payload: { chat_id: string; message?: string }): Promise<ApiResponse<null>> {
+    const response = await apiClient.post<ApiResponse<null>>(
+      API_ENDPOINTS.SETTINGS.TEST_SEND_MESSAGE,
+      payload
+    )
+    return response.data
+  },
+
   getCachedSettings(): SchoolSettings {
     const defaultSettings: SchoolSettings = {
       school_name: 'SMK IPTEK SANGGABUANA',

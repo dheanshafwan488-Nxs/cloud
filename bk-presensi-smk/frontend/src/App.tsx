@@ -120,7 +120,7 @@ export function App() {
             <Route
               path="/settings"
               element={
-                <RoleGuard roles={['admin']}>
+                <RoleGuard roles={['admin', 'guru_bk']}>
                   <SettingsPage />
                 </RoleGuard>
               }

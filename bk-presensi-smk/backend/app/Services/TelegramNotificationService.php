@@ -12,12 +12,31 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramNotificationService
 {
+    public static function getBotToken(): ?string
+    {
+        $token = \App\Models\Setting::get('telegram_bot_token');
+        if (!empty($token) && $token !== 'dummy_telegram_token') {
+            return $token;
+        }
+        return env('TELEGRAM_BOT_TOKEN');
+    }
+
+    public static function isNotificationEnabled(): bool
+    {
+        $val = \App\Models\Setting::get('telegram_notifications_enabled', '1');
+        return in_array($val, ['1', 'true', true], true);
+    }
+
     /**
      * Send push notification to verified parents when attendance is updated.
      */
     public static function notifyAttendance(Student $student, string $status, string $date, ?string $notes = null): int
     {
-        $botToken = env('TELEGRAM_BOT_TOKEN');
+        if (!self::isNotificationEnabled()) {
+            return 0;
+        }
+
+        $botToken = self::getBotToken();
         if (empty($botToken) || $botToken === 'dummy_telegram_token') {
             Log::info("TelegramNotificationService: skipped notifyAttendance because bot token is not configured.", [
                 'student_id' => $student->id,
@@ -79,7 +98,11 @@ class TelegramNotificationService
      */
     public static function notifyComplaint(Complaint $complaint, string $title = 'Informasi Bimbingan Konseling'): int
     {
-        $botToken = env('TELEGRAM_BOT_TOKEN');
+        if (!self::isNotificationEnabled()) {
+            return 0;
+        }
+
+        $botToken = self::getBotToken();
         if (empty($botToken) || $botToken === 'dummy_telegram_token') {
             Log::info("TelegramNotificationService: skipped notifyComplaint (token not configured)");
             return 0;
@@ -135,7 +158,11 @@ class TelegramNotificationService
      */
     public static function notifyCaseFollowup(Complaint $complaint, CaseFollowup $followup): int
     {
-        $botToken = env('TELEGRAM_BOT_TOKEN');
+        if (!self::isNotificationEnabled()) {
+            return 0;
+        }
+
+        $botToken = self::getBotToken();
         if (empty($botToken) || $botToken === 'dummy_telegram_token') {
             return 0;
         }
@@ -177,7 +204,7 @@ class TelegramNotificationService
      */
     public static function sendRawMessage(int $telegramId, string $message, ?array $replyMarkup = null): bool
     {
-        $botToken = env('TELEGRAM_BOT_TOKEN');
+        $botToken = self::getBotToken();
         if (empty($botToken) || $botToken === 'dummy_telegram_token') {
             return false;
         }

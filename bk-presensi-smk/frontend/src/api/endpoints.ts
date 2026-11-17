@@ -117,5 +117,7 @@ export const API_ENDPOINTS = {
   SETTINGS: {
     GET: '/api/v1/settings',
     UPDATE: '/api/v1/settings',
+    TEST_TELEGRAM: '/api/v1/settings/telegram/test',
+    TEST_SEND_MESSAGE: '/api/v1/settings/telegram/test-send',
   },
 }

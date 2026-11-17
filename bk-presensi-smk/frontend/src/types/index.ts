@@ -240,6 +240,10 @@ export interface SchoolSettings {
   school_email?: string
   cutoff_time?: string
   active_academic_year?: string
+  telegram_bot_token?: string
+  telegram_bot_username?: string
+  telegram_bot_service_token?: string
+  telegram_notifications_enabled?: string
 }
 
 // Profile

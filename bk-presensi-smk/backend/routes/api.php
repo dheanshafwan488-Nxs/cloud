@@ -98,9 +98,11 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::get('reports/attendance/students', [ReportController::class, 'attendanceByStudent']);
     Route::get('reports/complaints', [ReportController::class, 'complaintsReport']);
 
-    // Settings (School Name & Institutional Settings)
+    // Settings (School Name, Institutional Settings & Telegram Bot)
     Route::get('settings', [SettingController::class, 'index'])->withoutMiddleware(['auth:sanctum']);
     Route::put('settings', [SettingController::class, 'update']);
+    Route::post('settings/telegram/test', [SettingController::class, 'testTelegram']);
+    Route::post('settings/telegram/test-send', [SettingController::class, 'testSendMessage']);
 });
 
 // ─── Bot internal endpoints (service token) ──────────────────────────────────

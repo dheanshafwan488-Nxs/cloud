@@ -25,12 +25,16 @@ class Setting extends Model
     public static function getAllSettings(): array
     {
         $defaults = [
-            'school_name'          => 'SMK IPTEK SANGGABUANA',
-            'school_address'       => 'Jl. Terusan Pangrango No. 45, Karawang, Jawa Barat',
-            'school_phone'         => '0812-3456-7890',
-            'school_email'         => 'bk@smkiptek.sch.id',
-            'cutoff_time'          => '08:00',
-            'active_academic_year' => '2026/2027',
+            'school_name'                    => 'SMK IPTEK SANGGABUANA',
+            'school_address'                 => 'Jl. Terusan Pangrango No. 45, Karawang, Jawa Barat',
+            'school_phone'                   => '0812-3456-7890',
+            'school_email'                   => 'bk@smkiptek.sch.id',
+            'cutoff_time'                    => '08:00',
+            'active_academic_year'           => '2026/2027',
+            'telegram_bot_token'             => '',
+            'telegram_bot_username'          => '',
+            'telegram_bot_service_token'     => 'secret_bot_service_token_smk_iptek_2026',
+            'telegram_notifications_enabled' => '1',
         ];
 
         $stored = static::all()->pluck('value', 'key')->toArray();
