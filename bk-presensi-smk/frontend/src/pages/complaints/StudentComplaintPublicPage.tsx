@@ -48,6 +48,7 @@ export function StudentComplaintPublicPage() {
   const [isAnonymous, setIsAnonymous] = useState<boolean>(true)
   const [reporterName, setReporterName] = useState<string>('')
   const [attachment, setAttachment] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   // Submission & UI states
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
@@ -121,7 +122,20 @@ export function StudentComplaintPublicPage() {
         return
       }
       setAttachment(file)
+      if (file.type.startsWith('image/')) {
+        setPreviewUrl(URL.createObjectURL(file))
+      } else {
+        setPreviewUrl(null)
+      }
       setErrorMessage(null)
+    }
+  }
+
+  const handleRemoveAttachment = () => {
+    setAttachment(null)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
     }
   }
 
@@ -149,6 +163,17 @@ export function StudentComplaintPublicPage() {
       return
     }
 
+    if (!isAnonymous && !reporterName.trim()) {
+      setErrorMessage('Tuliskan nama Anda dan kelas pelapor, atau pilih opsi 100% Anonim.')
+      return
+    }
+
+    if (!attachment) {
+      setErrorMessage('Bukti foto kejadian wajib diunggah. Silakan pilih file foto bukti.')
+      document.getElementById('section-attachment')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -159,7 +184,7 @@ export function StudentComplaintPublicPage() {
         chronology: chronology.trim(),
         incident_at: incidentAt,
         reporter_name: isAnonymous ? 'Siswa (Anonim / Rahasia)' : reporterName.trim() || 'Siswa (Tidak Disebutkan)',
-        attachment: attachment || undefined,
+        attachment: attachment,
       })
 
       if (res.success && res.data) {
@@ -507,10 +532,11 @@ export function StudentComplaintPublicPage() {
                 {!isAnonymous && (
                   <div className="mt-2 animate-fade-in">
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Nama atau Kelas Pelapor
+                      Nama atau Kelas Pelapor <span className="text-rose-500 font-bold">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       value={reporterName}
                       onChange={(e) => setReporterName(e.target.value)}
                       placeholder="Tuliskan nama Anda dan kelas (misal: Rian - X RPL 2)"
@@ -520,30 +546,70 @@ export function StudentComplaintPublicPage() {
                 )}
               </div>
 
-              {/* 6. Upload Bukti Foto (Opsional) */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-navy-800 mb-1.5">
-                  6. Bukti Foto / Dokumen (Opsional)
-                </label>
-                <div className="flex items-center gap-3">
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 transition-colors">
-                    <Upload className="w-4 h-4 text-slate-500" />
-                    Pilih File Foto / Dokumen
+              {/* 6. Upload Bukti Foto (Wajib Diisi) */}
+              <div id="section-attachment" className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy-800">
+                    6. Bukti Foto / Dokumen Kejadian <span className="text-rose-500 font-bold">*</span>
+                  </label>
+                  <span className="text-[11px] font-semibold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                    Wajib Diunggah *
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Wajib menyertakan bukti foto pelanggaran (misal: foto saat kejadian, foto barang bukti, atau tangkapan layar bukti) agar pengaduan dapat segera diverifikasi dan diproses oleh Guru BK.
+                </p>
+
+                {!attachment ? (
+                  <label className="cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed border-rose-300 hover:border-navy-600 bg-rose-50/25 hover:bg-navy-50/20 rounded-2xl transition-all group">
+                    <div className="p-3 bg-rose-100 group-hover:bg-navy-100 text-rose-600 group-hover:text-navy-700 rounded-xl mb-2 transition-colors">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 group-hover:text-navy-800">
+                      Pilih & Unggah Foto Bukti Kejadian <span className="text-rose-500 font-bold">*</span>
+                    </span>
+                    <span className="text-xs text-slate-500 mt-1">
+                      Format didukung: Foto (JPG, PNG, WEBP) atau PDF (Maksimal 5 MB)
+                    </span>
                     <input
                       type="file"
+                      required
                       accept="image/*,application/pdf"
                       onChange={handleFileChange}
                       className="hidden"
                     />
                   </label>
-                  {attachment ? (
-                    <span className="text-xs text-slate-700 font-medium truncate max-w-xs">
-                      📎 {attachment.name} ({(attachment.size / 1024).toFixed(0)} KB)
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-400">JPG, PNG, PDF (Maksimal 5 MB)</span>
-                  )}
-                </div>
+                ) : (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="Pratinjau Bukti Foto"
+                          className="w-14 h-14 object-cover rounded-xl border border-slate-300 shadow-2xs shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 bg-navy-100 text-navy-800 flex items-center justify-center rounded-xl font-bold text-xs shrink-0">
+                          FILE
+                        </div>
+                      )}
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-bold text-slate-800 truncate">{attachment.name}</p>
+                        <p className="text-[11px] text-slate-500">
+                          {(attachment.size / 1024).toFixed(0)} KB • File siap dikirim ke Guru BK
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleRemoveAttachment}
+                      className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Ganti Foto
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Submit Button */}

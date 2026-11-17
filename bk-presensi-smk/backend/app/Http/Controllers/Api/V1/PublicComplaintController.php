@@ -65,7 +65,7 @@ class PublicComplaintController extends Controller
             'chronology'       => ['required', 'string', 'min:10', 'max:5000'],
             'incident_at'      => ['required', 'date'],
             'reporter_name'    => ['nullable', 'string', 'max:150'],
-            'attachment'       => ['nullable', 'file', 'mimes:jpeg,png,webp,pdf', 'max:5120'],
+            'attachment'       => ['required', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:5120'],
         ], [
             'class_id.required'         => 'Pilih kelas siswa yang ingin dilaporkan.',
             'student_id.required'       => 'Pilih nama siswa yang ingin dilaporkan.',
@@ -73,6 +73,9 @@ class PublicComplaintController extends Controller
             'chronology.required'       => 'Jelaskan kronologi atau keterangan kejadian.',
             'chronology.min'            => 'Keterangan kejadian minimal 10 karakter.',
             'incident_at.required'      => 'Tentukan tanggal atau waktu kejadian.',
+            'attachment.required'       => 'Lampiran bukti foto kejadian wajib diunggah.',
+            'attachment.file'           => 'Berkas lampiran harus berupa file yang valid.',
+            'attachment.mimes'          => 'Format file bukti harus berupa foto (JPG, PNG, WEBP) atau PDF.',
             'attachment.max'            => 'Ukuran file bukti maksimal 5 MB.',
         ]);
 

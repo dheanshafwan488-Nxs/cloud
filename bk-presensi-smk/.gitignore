@@ -25,6 +25,9 @@ backend/storage/framework/cache/*
 backend/storage/framework/sessions/*
 backend/storage/framework/views/*
 backend/storage/app/public/*
+backend/storage/app/private/*
+backend/storage/app/*
+!backend/storage/app/.gitkeep
 backend/storage/mysql_data/
 
 # Test cache
