@@ -11,7 +11,14 @@ import {
   AlertTriangle,
   ShieldCheck,
   RefreshCw,
+  Edit3,
+  User,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  UserCheck,
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { complaintService } from '../../services/complaintService'
 import { OfficialLetterData } from '../../types'
 import { showToast } from '../../hooks/useToast'
@@ -28,10 +35,63 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Editable schedule states
+  // Toggle Edit Panel & Active Tab
+  const [isEditPanelOpen, setIsEditPanelOpen] = useState(true)
+  const [activeEditTab, setActiveEditTab] = useState<'ttd' | 'jadwal' | 'surat'>('ttd')
+
+  // Editable Form States
+  // 1. Tanda Tangan Guru BK & Konselor
+  const [customGuruBkName, setCustomGuruBkName] = useState('')
+  const [customGuruBkNip, setCustomGuruBkNip] = useState('')
+  const [customGuruBkTitle, setCustomGuruBkTitle] = useState('')
+  const [customCounselor, setCustomCounselor] = useState('')
+
+  // 2. Tanda Tangan Kepala Sekolah
+  const [customKepsekName, setCustomKepsekName] = useState('')
+  const [customKepsekNip, setCustomKepsekNip] = useState('')
+  const [customKepsekTitle, setCustomKepsekTitle] = useState('')
+
+  // 3. Tanda Tangan Wali Kelas (Opsional)
+  const [includeWaliKelasTtd, setIncludeWaliKelasTtd] = useState(false)
+  const [customWaliKelasName, setCustomWaliKelasName] = useState('')
+  const [customWaliKelasNip, setCustomWaliKelasNip] = useState('')
+
+  // 4. Jadwal Panggilan
   const [customScheduleDate, setCustomScheduleDate] = useState('')
   const [customScheduleTime, setCustomScheduleTime] = useState('')
   const [customScheduleRoom, setCustomScheduleRoom] = useState('')
+
+  // 5. Informasi Dokumen & Redaksi
+  const [customLetterNumber, setCustomLetterNumber] = useState('')
+  const [customLetterTitle, setCustomLetterTitle] = useState('')
+  const [customIssuedPlaceDate, setCustomIssuedPlaceDate] = useState('')
+  const [customChronology, setCustomChronology] = useState('')
+
+  const populateFields = (data: OfficialLetterData) => {
+    // Schedule
+    setCustomScheduleDate(data.schedule.date_text)
+    setCustomScheduleTime(data.schedule.time)
+    setCustomScheduleRoom(data.schedule.room)
+    setCustomCounselor(data.schedule.counselor)
+
+    // Signatures
+    setCustomGuruBkName(data.signatories.guru_bk.name)
+    setCustomGuruBkNip(data.signatories.guru_bk.nip)
+    setCustomGuruBkTitle(data.signatories.guru_bk.title)
+
+    setCustomKepsekName(data.signatories.kepala_sekolah.name)
+    setCustomKepsekNip(data.signatories.kepala_sekolah.nip)
+    setCustomKepsekTitle(data.signatories.kepala_sekolah.title)
+
+    setCustomWaliKelasName(data.student.wali_kelas || '')
+    setCustomWaliKelasNip('NIP. -')
+
+    // Document Details
+    setCustomLetterNumber(data.letter_number)
+    setCustomLetterTitle(data.letter_title)
+    setCustomIssuedPlaceDate(`Karawang, ${data.issued_date}`)
+    setCustomChronology(data.complaint.chronology || '')
+  }
 
   useEffect(() => {
     if (!isOpen || !complaintId) return
@@ -42,9 +102,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
       .then((res) => {
         if (res.success && res.data) {
           setLetterData(res.data)
-          setCustomScheduleDate(res.data.schedule.date_text)
-          setCustomScheduleTime(res.data.schedule.time)
-          setCustomScheduleRoom(res.data.schedule.room)
+          populateFields(res.data)
         }
       })
       .catch((err) => {
@@ -62,10 +120,19 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
   }
 
   const handleCopyNumber = () => {
-    if (letterData?.letter_number) {
-      navigator.clipboard.writeText(letterData.letter_number)
+    const num = customLetterNumber || letterData?.letter_number
+    if (num) {
+      navigator.clipboard.writeText(num)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleResetToDefault = () => {
+    if (letterData) {
+      populateFields(letterData)
+      setIncludeWaliKelasTtd(false)
+      showToast('Data naskah dan tanda tangan dikembalikan ke data awal sistem.', 'info')
     }
   }
 
@@ -84,7 +151,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 Generator Surat Resmi Bimbingan Konseling
               </h2>
               <p className="text-xs text-slate-500 font-mono">
-                {letterData?.letter_number || 'Memuat nomor surat...'}
+                {customLetterNumber || letterData?.letter_number || 'Memuat nomor surat...'}
               </p>
             </div>
           </div>
@@ -107,7 +174,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
           </div>
         </div>
 
-        {/* Toolbar: Switch Letter Type & Schedule Adjustment (Hidden in Print) */}
+        {/* Toolbar: Switch Letter Type & Toggle Edit Panel (Hidden in Print) */}
         <div className="p-4 bg-white border-b border-slate-200 space-y-3 print:hidden">
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Letter Type Tabs */}
@@ -158,48 +225,306 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
               </button>
             </div>
 
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyNumber}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg transition-colors"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Tersalin' : 'Salin Nomor Surat'}
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Edit Bar Header */}
+          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditPanelOpen(!isEditPanelOpen)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-navy-50 hover:bg-navy-100 text-navy-800 font-semibold text-xs rounded-lg transition-colors border border-navy-200"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{isEditPanelOpen ? 'Sembunyikan Panel Edit' : 'Edit Nama Guru & Tanda Tangan'}</span>
+                {isEditPanelOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              <span className="text-[11px] text-slate-500 hidden md:inline">
+                Perubahan langsung diterapkan ke naskah surat secara real-time.
+              </span>
+            </div>
+
             <button
-              onClick={handleCopyNumber}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg"
+              type="button"
+              onClick={handleResetToDefault}
+              title="Kembalikan semua teks ke data asli sistem"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors shadow-2xs"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Tersalin' : 'Salin Nomor Surat'}
+              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">Reset ke Default</span>
             </button>
           </div>
 
-          {/* Quick Schedule Inline Edit */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
-            <div>
-              <label className="text-slate-500 font-medium block mb-1">Hari & Tanggal Menghadap</label>
-              <input
-                type="text"
-                value={customScheduleDate}
-                onChange={(e) => setCustomScheduleDate(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-navy-600"
-                placeholder="Rabu, 21 Oktober 2026"
-              />
+          {/* Expanded Edit Panel */}
+          {isEditPanelOpen && (
+            <div className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-3">
+              {/* Edit Sub-tabs */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTab('ttd')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                    activeEditTab === 'ttd'
+                      ? 'bg-navy-800 text-white'
+                      : 'text-slate-600 hover:bg-slate-200/60'
+                  }`}
+                >
+                  ✍️ Penandatangan (Guru BK & Kepsek)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTab('jadwal')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                    activeEditTab === 'jadwal'
+                      ? 'bg-navy-800 text-white'
+                      : 'text-slate-600 hover:bg-slate-200/60'
+                  }`}
+                >
+                  📅 Jadwal & Ruangan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveEditTab('surat')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                    activeEditTab === 'surat'
+                      ? 'bg-navy-800 text-white'
+                      : 'text-slate-600 hover:bg-slate-200/60'
+                  }`}
+                >
+                  📋 Nomor Surat & Redaksi
+                </button>
+              </div>
+
+              {/* Sub-tab 1: Tanda Tangan */}
+              {activeEditTab === 'ttd' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {/* Guru BK */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                      <div className="flex items-center gap-1.5 font-bold text-navy-900 border-b border-slate-100 pb-1.5">
+                        <User className="w-3.5 h-3.5 text-navy-600" />
+                        <span>Penandatangan Guru BK</span>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Nama Guru BK</label>
+                        <input
+                          type="text"
+                          value={customGuruBkName}
+                          onChange={(e) => setCustomGuruBkName(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                          placeholder="Nama lengkap & gelar guru BK"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[11px] font-medium text-slate-500 block mb-0.5">NIP / NUPTK</label>
+                          <input
+                            type="text"
+                            value={customGuruBkNip}
+                            onChange={(e) => setCustomGuruBkNip(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                            placeholder="NIP. ..."
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Jabatan Tanda Tangan</label>
+                          <input
+                            type="text"
+                            value={customGuruBkTitle}
+                            onChange={(e) => setCustomGuruBkTitle(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                            placeholder="Koordinator Guru BK"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Guru yang Ditemui Ortu (Menemui)</label>
+                        <input
+                          type="text"
+                          value={customCounselor}
+                          onChange={(e) => setCustomCounselor(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                          placeholder="Nama guru yang akan ditemui orang tua"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Kepala Sekolah */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                      <div className="flex items-center gap-1.5 font-bold text-navy-900 border-b border-slate-100 pb-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-navy-600" />
+                        <span>Penandatangan Mengetahui (Kepala Sekolah)</span>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Nama Kepala Sekolah</label>
+                        <input
+                          type="text"
+                          value={customKepsekName}
+                          onChange={(e) => setCustomKepsekName(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                          placeholder="Drs. H. Mulyadi, M.Pd."
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[11px] font-medium text-slate-500 block mb-0.5">NIP Kepala Sekolah</label>
+                          <input
+                            type="text"
+                            value={customKepsekNip}
+                            onChange={(e) => setCustomKepsekNip(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                            placeholder="NIP. ..."
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Jabatan Mengetahui</label>
+                          <input
+                            type="text"
+                            value={customKepsekTitle}
+                            onChange={(e) => setCustomKepsekTitle(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                            placeholder="Kepala Sekolah"
+                          />
+                        </div>
+                      </div>
+                      <div className="pt-1">
+                        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={includeWaliKelasTtd}
+                            onChange={(e) => setIncludeWaliKelasTtd(e.target.checked)}
+                            className="rounded border-slate-300 text-navy-600 focus:ring-navy-500"
+                          />
+                          <span className="text-xs text-slate-700 font-medium">
+                            Sertakan Kolom TTD Wali Kelas di Surat
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Wali Kelas Fields if toggled */}
+                  {includeWaliKelasTtd && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Nama Wali Kelas</label>
+                        <input
+                          type="text"
+                          value={customWaliKelasName}
+                          onChange={(e) => setCustomWaliKelasName(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                          placeholder="Nama Wali Kelas"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 block mb-0.5">NIP Wali Kelas</label>
+                        <input
+                          type="text"
+                          value={customWaliKelasNip}
+                          onChange={(e) => setCustomWaliKelasNip(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                          placeholder="NIP. ... (atau -)"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sub-tab 2: Jadwal & Ruangan */}
+              {activeEditTab === 'jadwal' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-white p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Hari & Tanggal Menghadap</label>
+                    <input
+                      type="text"
+                      value={customScheduleDate}
+                      onChange={(e) => setCustomScheduleDate(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                      placeholder="Rabu, 21 Oktober 2026"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Waktu / Pukul</label>
+                    <input
+                      type="text"
+                      value={customScheduleTime}
+                      onChange={(e) => setCustomScheduleTime(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                      placeholder="09.00 - 11.00 WIB"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Ruangan / Tempat</label>
+                    <input
+                      type="text"
+                      value={customScheduleRoom}
+                      onChange={(e) => setCustomScheduleRoom(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                      placeholder="Ruang BK Lt. 2"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tab 3: Administrasi & Redaksi */}
+              {activeEditTab === 'surat' && (
+                <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Nomor Surat</label>
+                      <input
+                        type="text"
+                        value={customLetterNumber}
+                        onChange={(e) => setCustomLetterNumber(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs font-mono focus:ring-1 focus:ring-navy-600"
+                        placeholder="421.5/007/SMK-IPTEK/BK-PGL/XI/2026"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Kota & Tanggal Surat</label>
+                      <input
+                        type="text"
+                        value={customIssuedPlaceDate}
+                        onChange={(e) => setCustomIssuedPlaceDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                        placeholder="Karawang, 17 November 2026"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Perihal / Judul Surat</label>
+                      <input
+                        type="text"
+                        value={customLetterTitle}
+                        onChange={(e) => setCustomLetterTitle(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                        placeholder="SURAT PANGGILAN ORANG TUA / WALI MURID"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 block mb-0.5">Kronologi / Catatan Khusus di Surat</label>
+                    <textarea
+                      rows={2}
+                      value={customChronology}
+                      onChange={(e) => setCustomChronology(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-xs focus:ring-1 focus:ring-navy-600"
+                      placeholder="Tuliskan catatan atau kronologi peristiwa..."
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="text-slate-500 font-medium block mb-1">Waktu / Pukul</label>
-              <input
-                type="text"
-                value={customScheduleTime}
-                onChange={(e) => setCustomScheduleTime(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-navy-600"
-                placeholder="09.00 - 11.00 WIB"
-              />
-            </div>
-            <div>
-              <label className="text-slate-500 font-medium block mb-1">Ruangan / Tempat</label>
-              <input
-                type="text"
-                value={customScheduleRoom}
-                onChange={(e) => setCustomScheduleRoom(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-navy-600"
-                placeholder="Ruang BK Lt. 2"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Printable Official Document Body */}
@@ -238,7 +563,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 <div className="space-y-1">
                   <div className="flex gap-2">
                     <span className="w-20 text-slate-500">Nomor</span>
-                    <span className="font-semibold">: {letterData.letter_number}</span>
+                    <span className="font-semibold">: {customLetterNumber || letterData.letter_number}</span>
                   </div>
                   <div className="flex gap-2">
                     <span className="w-20 text-slate-500">Lampiran</span>
@@ -247,13 +572,13 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                   <div className="flex gap-2">
                     <span className="w-20 text-slate-500">Perihal</span>
                     <span className="font-bold underline uppercase">
-                      : {letterData.letter_title}
+                      : {customLetterTitle || letterData.letter_title}
                     </span>
                   </div>
                 </div>
 
                 <div className="text-right text-slate-700">
-                  <p>Karawang, {letterData.issued_date}</p>
+                  <p>{customIssuedPlaceDate || `Karawang, ${letterData.issued_date}`}</p>
                   <p className="mt-2 text-slate-500">Kepada Yth.</p>
                   <p className="font-bold">Bapak / Ibu Orang Tua / Wali Murid</p>
                   <p>dari Siswa: <span className="font-bold underline">{letterData.student.name}</span></p>
@@ -283,7 +608,9 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <span className="text-slate-500">Kelas / Rombel</span>
-                  <span className="col-span-2 font-semibold text-slate-800">: {letterData.student.class_name} (Wali Kelas: {letterData.student.wali_kelas})</span>
+                  <span className="col-span-2 font-semibold text-slate-800">
+                    : {letterData.student.class_name} (Wali Kelas: {customWaliKelasName || letterData.student.wali_kelas || '-'})
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <span className="text-slate-500">Total Akumulasi Poin Pelanggaran</span>
@@ -324,7 +651,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 </div>
 
                 <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-lg text-slate-700 italic">
-                  <strong>Kronologi Singkat:</strong> "{letterData.complaint.chronology}"
+                  <strong>Kronologi Singkat:</strong> "{customChronology !== '' ? customChronology : letterData.complaint.chronology}"
                 </div>
               </div>
 
@@ -349,7 +676,7 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                   </div>
                   <div className="flex gap-3">
                     <span className="w-32 font-semibold text-slate-600">Menemui</span>
-                    <span>: {letterData.schedule.counselor}</span>
+                    <span>: {customCounselor || letterData.schedule.counselor}</span>
                   </div>
                 </div>
                 <p>
@@ -358,26 +685,42 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 </p>
               </div>
 
-              {/* 7. TANDA TANGAN DUA KOLOM + QR CODE RESMI */}
-              <div className="pt-8 grid grid-cols-3 items-end text-xs font-sans text-center">
-                {/* Kolom Kiri: Kepala Sekolah */}
+              {/* 7. AREA TANDA TANGAN RESMI (Dua atau Tiga Kolom) */}
+              <div className={`pt-8 grid ${includeWaliKelasTtd ? 'grid-cols-4' : 'grid-cols-3'} items-end text-xs font-sans text-center gap-3`}>
+                
+                {/* Kolom 1: Kepala Sekolah */}
                 <div className="space-y-16">
                   <div>
                     <p className="text-slate-600">Mengetahui,</p>
-                    <p className="font-bold">{letterData.signatories.kepala_sekolah.title}</p>
+                    <p className="font-bold">{customKepsekTitle || letterData.signatories.kepala_sekolah.title}</p>
                   </div>
                   <div>
-                    <p className="font-bold underline text-slate-900">{letterData.signatories.kepala_sekolah.name}</p>
-                    <p className="text-slate-500 text-[11px]">{letterData.signatories.kepala_sekolah.nip}</p>
+                    <p className="font-bold underline text-slate-900">{customKepsekName || letterData.signatories.kepala_sekolah.name}</p>
+                    <p className="text-slate-500 text-[11px]">{customKepsekNip || letterData.signatories.kepala_sekolah.nip}</p>
                   </div>
                 </div>
 
-                {/* Kolom Tengah: QR Code Verifikasi Keaslian */}
+                {/* Kolom 2: Wali Kelas (Jika Diaktifkan) */}
+                {includeWaliKelasTtd && (
+                  <div className="space-y-16">
+                    <div>
+                      <p className="text-slate-600">Mengetahui,</p>
+                      <p className="font-bold">Wali Kelas</p>
+                    </div>
+                    <div>
+                      <p className="font-bold underline text-slate-900">{customWaliKelasName || letterData.student.wali_kelas || '-'}</p>
+                      <p className="text-slate-500 text-[11px]">{customWaliKelasNip || 'NIP. -'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Kolom QR Code Verifikasi Keaslian */}
                 <div className="flex flex-col items-center justify-center space-y-1">
-                  <img
-                    src={letterData.qr_verification}
-                    alt="QR Dokumen Resmi"
-                    className="w-20 h-20 border border-slate-200 p-1 bg-white rounded shadow-xs"
+                  <QRCodeSVG
+                    value={`VERIFIED-DOC: SMK IPTEK SANGGABUANA - ${letterData.complaint.code} - ${customLetterNumber || letterData.letter_number}`}
+                    size={76}
+                    level="M"
+                    className="border border-slate-200 p-1 bg-white rounded shadow-xs"
                   />
                   <p className="text-[10px] text-slate-400 font-mono">Verifikasi Dokumen</p>
                   <p className="text-[9px] text-emerald-700 font-semibold flex items-center gap-0.5">
@@ -388,14 +731,15 @@ export function OfficialLetterModal({ isOpen, onClose, complaintId }: OfficialLe
                 {/* Kolom Kanan: Guru BK */}
                 <div className="space-y-16">
                   <div>
-                    <p className="text-slate-600">Karawang, {letterData.issued_date}</p>
-                    <p className="font-bold">{letterData.signatories.guru_bk.title}</p>
+                    <p className="text-slate-600">{customIssuedPlaceDate || `Karawang, ${letterData.issued_date}`}</p>
+                    <p className="font-bold">{customGuruBkTitle || letterData.signatories.guru_bk.title}</p>
                   </div>
                   <div>
-                    <p className="font-bold underline text-slate-900">{letterData.signatories.guru_bk.name}</p>
-                    <p className="text-slate-500 text-[11px]">{letterData.signatories.guru_bk.nip}</p>
+                    <p className="font-bold underline text-slate-900">{customGuruBkName || letterData.signatories.guru_bk.name}</p>
+                    <p className="text-slate-500 text-[11px]">{customGuruBkNip || letterData.signatories.guru_bk.nip}</p>
                   </div>
                 </div>
+
               </div>
 
             </div>
