@@ -67,7 +67,11 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
 
     // Attendance
     Route::get('attendances/today', [AttendanceController::class, 'today']);
+    Route::get('attendances/class/{classId}', [AttendanceController::class, 'byClass']);
+    Route::get('attendances/student/{student}', [AttendanceController::class, 'byStudent']);
+    Route::get('attendances/export', [AttendanceController::class, 'export']);
     Route::post('attendances/bulk', [AttendanceController::class, 'bulk']);
+    Route::post('attendances/{attendance}/finalize', [AttendanceController::class, 'finalize']);
     Route::apiResource('attendances', AttendanceController::class)->only(['index', 'store', 'update']);
 
     // Violations

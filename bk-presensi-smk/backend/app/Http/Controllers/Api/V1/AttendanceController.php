@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Services\AttendanceService;
 use App\Services\AuditService;
@@ -62,6 +63,25 @@ class AttendanceController extends Controller
         return $data;
     }
 
+    public function byClass(Request $request, $classId): JsonResponse
+    {
+        $class = SchoolClass::findOrFail($classId);
+        $dateParam = $request->query('date', Carbon::today()->toDateString());
+        $date = Carbon::parse($dateParam)->toDateString();
+
+        $attendances = Attendance::with(['student'])
+            ->where('class_id', $class->id)
+            ->whereDate('date', $date)
+            ->get();
+
+        return response()->json([
+            'success'    => true,
+            'message'    => "Presensi kelas {$class->name} tanggal {$date}.",
+            'request_id' => app('request.id'),
+            'data'       => $attendances,
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -106,8 +126,65 @@ class AttendanceController extends Controller
             'success'    => true,
             'message'    => count($saved) . ' presensi berhasil disimpan.',
             'request_id' => app('request.id'),
-            'data'       => ['count' => count($saved)],
+            'data'       => [
+                'count'       => count($saved),
+                'saved_count' => count($saved),
+            ],
         ]);
+    }
+
+    public function finalize(Attendance $attendance): JsonResponse
+    {
+        $attendance->update([
+            'finalized_at' => now(),
+            'updated_by'   => Auth::id(),
+        ]);
+
+        return response()->json([
+            'success'    => true,
+            'message'    => 'Presensi berhasil difinalisasi.',
+            'request_id' => app('request.id'),
+            'data'       => $attendance,
+        ]);
+    }
+
+    public function export(Request $request)
+    {
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to'   => ['nullable', 'date'],
+            'class_id'  => ['nullable', 'integer', 'exists:classes,id'],
+        ]);
+
+        $query = Attendance::with(['student', 'class'])
+            ->when($request->date_from, fn($q, $d) => $q->where('date', '>=', $d))
+            ->when($request->date_to, fn($q, $d) => $q->where('date', '<=', $d))
+            ->when($request->class_id, fn($q, $c) => $q->where('class_id', $c));
+
+        $attendances = $query->orderBy('date')->get();
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="presensi_'.date('YmdHis').'.csv"',
+        ];
+
+        $callback = function () use ($attendances) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Tanggal', 'NIS', 'Nama Siswa', 'Kelas', 'Status', 'Catatan']);
+            foreach ($attendances as $row) {
+                fputcsv($handle, [
+                    $row->date?->toDateString() ?? '-',
+                    $row->student?->nis ?? '-',
+                    $row->student?->name ?? '-',
+                    $row->class?->name ?? '-',
+                    $row->status,
+                    $row->notes ?? '-',
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function update(Request $request, Attendance $attendance): JsonResponse

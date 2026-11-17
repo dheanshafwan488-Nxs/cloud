@@ -28,7 +28,7 @@ export function AttendanceDailyPage() {
   const [viewMode, setViewMode] = useState<'auto' | 'table' | 'cards'>('auto')
 
   const { hasRole } = useAuth()
-  const canFinalize = hasRole(['admin', 'wali_kelas'])
+  const canFinalize = hasRole(['admin', 'wali_kelas', 'guru_bk'])
 
   const [classes, setClasses] = useState<SchoolClass[]>([])
   const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId)
