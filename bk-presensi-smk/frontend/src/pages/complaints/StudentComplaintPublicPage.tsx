@@ -577,3 +577,4 @@ export function StudentComplaintPublicPage() {
     </div>
   )
 }
+

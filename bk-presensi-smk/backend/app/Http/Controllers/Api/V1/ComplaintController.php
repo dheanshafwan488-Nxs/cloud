@@ -287,12 +287,15 @@ class ComplaintController extends Controller
             ->sum(fn($comp) => $comp->violations->sum('pivot.points_snapshot'));
 
         $thisComplaintPoints = $complaint->violations->sum('pivot.points_snapshot');
+        if ($thisComplaintPoints === 0 && !empty($complaint->manual_violation)) {
+            $thisComplaintPoints = 10;
+        }
 
         $waliKelas = null;
         if ($student->class_id) {
             $assignment = \App\Models\ClassAssignment::where('class_id', $student->class_id)
-                ->where('role_in_class', 'wali_kelas')
-                ->where('is_active', true)
+                ->where('assignment_role', 'wali_kelas')
+                ->whereNull('ended_at')
                 ->with('user')
                 ->first();
             $waliKelas = $assignment?->user?->name;
@@ -332,13 +335,20 @@ class ComplaintController extends Controller
                     'cumulative_points' => $cumulativePoints,
                 ],
                 'complaint'         => [
-                    'code'        => $complaint->complaint_code,
-                    'incident_at' => \Illuminate\Support\Carbon::parse($complaint->incident_at)->locale('id')->isoFormat('dddd, D MMMM Y'),
-                    'chronology'  => $complaint->chronology,
-                    'violations'  => $complaint->violations->map(fn($v) => [
-                        'name'   => $v->name,
-                        'points' => $v->pivot->points_snapshot ?? $v->points,
-                    ]),
+                    'code'             => $complaint->complaint_code,
+                    'incident_at'      => \Illuminate\Support\Carbon::parse($complaint->incident_at)->locale('id')->isoFormat('dddd, D MMMM Y'),
+                    'chronology'       => $complaint->chronology,
+                    'manual_violation' => $complaint->manual_violation,
+                    'reporter_name'    => $complaint->reporter_name,
+                    'violations'       => $complaint->violations->isNotEmpty()
+                        ? $complaint->violations->map(fn($v) => [
+                            'name'   => $v->name,
+                            'points' => $v->pivot->points_snapshot ?? $v->points,
+                        ])
+                        : ($complaint->manual_violation ? [[
+                            'name'   => $complaint->manual_violation,
+                            'points' => 10,
+                        ]] : []),
                 ],
                 'schedule'          => [
                     'date'      => $scheduledDate->toDateString(),
