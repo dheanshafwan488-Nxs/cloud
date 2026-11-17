@@ -1,4 +1,11 @@
 export const API_ENDPOINTS = {
+  // Public Student Complaint (Barcode / QR Code)
+  PUBLIC: {
+    CLASSES: '/api/v1/public/classes',
+    CLASS_STUDENTS: (classId: number | string) => `/api/v1/public/classes/${classId}/students`,
+    SUBMIT_COMPLAINT: '/api/v1/public/complaints',
+  },
+
   // Auth
   AUTH: {
     LOGIN: '/api/v1/auth/login',

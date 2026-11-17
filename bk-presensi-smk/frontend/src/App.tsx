@@ -22,14 +22,17 @@ import { ReportsPage } from './pages/reports/ReportsPage'
 import { UserListPage } from './pages/users/UserListPage'
 import { SettingsPage } from './pages/settings/SettingsPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
+import { StudentComplaintPublicPage } from './pages/complaints/StudentComplaintPublicPage'
 
 export function App() {
   return (
     <SchoolSettingsProvider>
       <AuthProvider>
       <Routes>
-        {/* Public Login Route */}
+        {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/pengaduan-siswa" element={<StudentComplaintPublicPage />} />
+        <Route path="/lapor" element={<StudentComplaintPublicPage />} />
 
         {/* Protected Dashboard Routes */}
         <Route element={<ProtectedRoute />}>

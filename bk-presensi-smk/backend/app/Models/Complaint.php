@@ -15,6 +15,7 @@ class Complaint extends Model
 
     protected $fillable = [
         'complaint_code', 'student_id', 'class_id', 'reported_by_user_id',
+        'reporter_name', 'manual_violation',
         'chronology', 'incident_at', 'status', 'assigned_to',
         'parent_visible', 'resolved_at',
     ];

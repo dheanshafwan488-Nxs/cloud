@@ -12,6 +12,7 @@ import {
   User as UserIcon,
   Settings,
   X,
+  QrCode,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useSchoolSettings } from '../hooks/useSchoolSettings'
@@ -58,6 +59,12 @@ const MENU_ITEMS: MenuItem[] = [
     href: '/complaints',
     icon: MessageSquareWarning,
     roles: ['admin', 'guru_bk', 'siswa'],
+  },
+  {
+    label: 'Form Siswa (Barcode)',
+    href: '/pengaduan-siswa',
+    icon: QrCode,
+    roles: ['admin', 'guru_bk'],
   },
   {
     label: 'Tindak Lanjut',

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Eye, MessageSquareWarning, ShieldCheck } from 'lucide-react'
+import { Plus, Eye, MessageSquareWarning, ShieldCheck, QrCode } from 'lucide-react'
 import { complaintService } from '../../services/complaintService'
 import { classService } from '../../services/classService'
 import { Complaint, SchoolClass, ComplaintStatus } from '../../types'
@@ -90,6 +90,32 @@ export function ComplaintListPage() {
       ),
     },
     {
+      key: 'violation',
+      header: 'Jenis Pelanggaran',
+      render: (row) => (
+        <div className="max-w-xs">
+          {row.manual_violation ? (
+            <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+              {row.manual_violation}
+            </span>
+          ) : row.violations && row.violations.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {row.violations.map((v) => (
+                <span key={v.id} className="text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                  {v.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-slate-400">-</span>
+          )}
+          <span className="block text-[11px] text-slate-400 mt-0.5">
+            Pelapor: {row.reporter_name || 'Siswa (Anonim)'}
+          </span>
+        </div>
+      ),
+    },
+    {
       key: 'status',
       header: 'Status Kasus',
       render: (row) => <StatusBadge status={row.status} />,
@@ -131,13 +157,23 @@ export function ComplaintListPage() {
         title="Pengaduan & Kasus BK"
         description="Pusat pelaporan insiden, tindak disiplin, dan bimbingan konseling SMK IPTEK SANGGABUANA"
         action={
-          <Link
-            to="/complaints/create"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-navy-800 hover:bg-navy-900 rounded-lg shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Buat Pengaduan Baru
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/pengaduan-siswa"
+              target="_blank"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-xs transition-colors"
+            >
+              <QrCode className="w-4 h-4 text-emerald-600" />
+              <span>Link Form Siswa</span>
+            </Link>
+            <Link
+              to="/complaints/create"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-navy-800 hover:bg-navy-900 rounded-lg shadow-xs transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Buat Pengaduan Baru
+            </Link>
+          </div>
         }
       />
 

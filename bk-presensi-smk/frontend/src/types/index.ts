@@ -104,6 +104,8 @@ export interface Complaint {
   parent_visible: boolean
   assigned_to?: number
   resolved_at?: string
+  manual_violation?: string
+  reporter_name?: string
   created_at: string
   student?: Student
   class?: SchoolClass

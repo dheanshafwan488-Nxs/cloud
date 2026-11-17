@@ -14,6 +14,7 @@ import {
   Trash2,
   Lock,
   Printer,
+  AlertTriangle,
 } from 'lucide-react'
 import { complaintService, AddFollowupPayload } from '../../services/complaintService'
 import { Complaint, ComplaintStatus, CaseFollowup, ComplaintStatusHistory } from '../../types'
@@ -227,6 +228,19 @@ export function ComplaintDetailPage() {
               {complaint.chronology}
             </div>
 
+            {/* Manual Violation from student form */}
+            {complaint.manual_violation && (
+              <div className="pt-2">
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Pelanggaran yang Dilaporkan:
+                </h4>
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs sm:text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{complaint.manual_violation}</span>
+                </div>
+              </div>
+            )}
+
             {/* Violations associated */}
             {complaint.violations && complaint.violations.length > 0 && (
               <div className="pt-2">
@@ -400,8 +414,18 @@ export function ComplaintDetailPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-400">Pelapor</span>
-                <span>{complaint.reported_by_user?.name || 'Siswa Mandiri'}</span>
+                <span className="font-semibold text-slate-800">
+                  {complaint.reporter_name || complaint.reported_by_user?.name || 'Siswa (Anonim)'}
+                </span>
               </div>
+              {complaint.manual_violation && (
+                <div className="flex justify-between py-1 border-b border-slate-50 text-right">
+                  <span className="text-slate-400 shrink-0 mr-2">Pelanggaran</span>
+                  <span className="font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[11px] truncate max-w-[180px]">
+                    {complaint.manual_violation}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-1">
                 <span className="text-slate-400">Akses Orang Tua</span>
                 <span className="font-semibold">

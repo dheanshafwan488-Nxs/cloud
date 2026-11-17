@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, School, AlertCircle } from 'lucide-react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Eye, EyeOff, Lock, Mail, School, AlertCircle, QrCode, ArrowRight } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useSchoolSettings } from '../../hooks/useSchoolSettings'
 import { CopyRequestId } from '../../components/common/CopyRequestId'
@@ -12,7 +12,7 @@ export function LoginPage() {
   const { login, isAuthenticated } = useAuth()
   const { settings } = useSchoolSettings()
 
-  const [email, setEmail] = useState('admin@smkiptek.sch.id')
+  const [email, setEmail] = useState('gurubk@smkiptek.sch.id')
   const [password, setPassword] = useState('password')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -54,10 +54,10 @@ export function LoginPage() {
     }
   }
 
-  // Quick fill helper for Sempro / KKP demo
-  const handleQuickFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail)
-    setPassword(demoPass)
+  // Quick fill helper for Guru BK demo
+  const handleQuickFillBk = () => {
+    setEmail('gurubk@smkiptek.sch.id')
+    setPassword('password')
     setErrorMessage(null)
     setErrorRequestId(null)
   }
@@ -74,16 +74,19 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-navy-800 text-navy-200 border border-navy-700 shadow-xl mb-4">
             <School className="w-8 h-8 text-blue-400" />
           </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-900/60 text-blue-300 border border-blue-700/60 mb-2">
+            Portal Khusus Guru BK
+          </span>
           <h1 className="text-2xl font-bold tracking-tight text-white">
             {settings?.school_name || 'SMK IPTEK SANGGABUANA'}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Sistem Informasi Bimbingan Konseling & Presensi Siswa
+            Sistem Informasi Bimbingan Konseling & Layanan Pengaduan
           </p>
         </div>
 
         {/* Login Box */}
-        <div className="mt-8 bg-white/95 backdrop-blur-md py-8 px-6 shadow-2xl rounded-2xl sm:px-10 border border-slate-100">
+        <div className="mt-6 bg-white/95 backdrop-blur-md py-8 px-6 shadow-2xl rounded-2xl sm:px-10 border border-slate-100">
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Error Notification */}
             {errorMessage && (
@@ -103,7 +106,7 @@ export function LoginPage() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                Alamat Email
+                Alamat Email Guru BK
               </label>
               <div className="relative rounded-lg shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -115,7 +118,7 @@ export function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@smkiptek.sch.id"
+                  placeholder="gurubk@smkiptek.sch.id"
                   className="block w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-600 focus:bg-white transition-all text-slate-900"
                 />
               </div>
@@ -154,7 +157,7 @@ export function LoginPage() {
               id="btn-login"
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-navy-800 hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-600 disabled:opacity-50 transition-colors"
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-navy-800 hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-600 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
@@ -162,56 +165,45 @@ export function LoginPage() {
                   <span>Memverifikasi...</span>
                 </div>
               ) : (
-                'Masuk ke Sistem'
+                'Masuk Portal Guru BK'
               )}
             </button>
           </form>
 
-          {/* Quick Demo Access Bar for Sempro / Testing */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
-              Pilihan Akun Uji Coba Demo:
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                id="btn-demo-admin"
-                type="button"
-                onClick={() => handleQuickFill('admin@smkiptek.sch.id', 'password')}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-navy-50 hover:border-navy-300 text-slate-700 text-left font-medium transition-colors"
-              >
-                🛡️ Admin
-              </button>
-              <button
-                id="btn-demo-bk"
-                type="button"
-                onClick={() => handleQuickFill('gurubk@smkiptek.sch.id', 'password')}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-navy-50 hover:border-navy-300 text-slate-700 text-left font-medium transition-colors"
-              >
-                🤝 Guru BK
-              </button>
-              <button
-                id="btn-demo-wali"
-                type="button"
-                onClick={() => handleQuickFill('wali@smkiptek.sch.id', 'password')}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-navy-50 hover:border-navy-300 text-slate-700 text-left font-medium transition-colors"
-              >
-                📋 Wali Kelas
-              </button>
-              <button
-                id="btn-demo-siswa"
-                type="button"
-                onClick={() => handleQuickFill('siswa@smkiptek.sch.id', 'password')}
-                className="p-2 border border-slate-200 rounded-lg bg-slate-50 hover:bg-navy-50 hover:border-navy-300 text-slate-700 text-left font-medium transition-colors"
-              >
-                🎓 Siswa
-              </button>
-            </div>
+          {/* Quick Demo Access Bar for Guru BK */}
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <button
+              id="btn-demo-bk"
+              type="button"
+              onClick={handleQuickFillBk}
+              className="w-full p-2.5 border border-blue-200 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-blue-900 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              🤝 Klik Disini: Isi Akun Demo Guru BK
+            </button>
           </div>
+        </div>
+
+        {/* Student Complaint Notice & Direct Link */}
+        <div className="mt-5 bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-700/80 rounded-2xl p-4 text-center shadow-lg">
+          <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <QrCode className="w-4 h-4" />
+            <span>Siswa Tidak Memiliki Akses Login</span>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Siswa cukup memindai <strong>QR Code / Barcode</strong> atau mengklik tautan di bawah untuk langsung mengisi formulir pengaduan secara mandiri & rahasia.
+          </p>
+          <Link
+            to="/pengaduan-siswa"
+            className="mt-3 inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors"
+          >
+            <span>Buka Formulir Pengaduan Siswa</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Security Notice */}
         <p className="mt-4 text-center text-xs text-slate-400">
-          Akses terbatas. Dilindungi oleh enkripsi dan audit logging terpusat.
+          Akses login sistem dibatasi khusus untuk Guru BK SMK IPTEK SANGGABUANA.
         </p>
       </div>
 

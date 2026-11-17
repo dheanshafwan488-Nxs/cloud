@@ -249,14 +249,16 @@ class ComplaintController extends Controller
     private function formatListItem(Complaint $c): array
     {
         return [
-            'id'             => $c->id,
-            'complaint_code' => $c->complaint_code,
-            'student_name'   => $c->student?->name,
-            'class_name'     => $c->class?->name,
-            'status'         => $c->status,
-            'incident_at'    => $c->incident_at,
-            'assigned_to'    => $c->assignedTo?->name,
-            'created_at'     => $c->created_at,
+            'id'               => $c->id,
+            'complaint_code'   => $c->complaint_code,
+            'student_name'     => $c->student?->name,
+            'class_name'       => $c->class?->name,
+            'status'           => $c->status,
+            'incident_at'      => $c->incident_at,
+            'assigned_to'      => $c->assignedTo?->name,
+            'reporter_name'    => $c->reporter_name ?? ($c->reportedBy?->name ?? 'Siswa (Anonim)'),
+            'manual_violation' => $c->manual_violation,
+            'created_at'       => $c->created_at,
         ];
     }
 

@@ -12,8 +12,17 @@ use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\TelegramBotController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\PublicComplaintController;
 use App\Http\Controllers\Api\V1\ViolationController;
 use Illuminate\Support\Facades\Route;
+
+// ─── Public routes (Student Barcode Complaint Form) ──────────────────────────
+Route::prefix('v1/public')->group(function () {
+    Route::get('classes', [PublicComplaintController::class, 'getClasses']);
+    Route::get('classes/{class}/students', [PublicComplaintController::class, 'getStudentsByClass']);
+    Route::post('complaints', [PublicComplaintController::class, 'store'])
+        ->middleware('throttle:30,1');
+});
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 Route::prefix('v1/auth')->group(function () {

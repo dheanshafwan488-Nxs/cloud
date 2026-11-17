@@ -15,7 +15,13 @@ import {
   ExternalLink,
   ChevronRight,
   Flame,
+  QrCode,
+  Copy,
+  Check,
+  Printer,
+  Sparkles,
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   BarChart,
   Bar,
@@ -41,6 +47,57 @@ export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<{ message: string; requestId?: string | null } | null>(null)
   const [chartDays, setChartDays] = useState<number>(7)
+  const [copiedLink, setCopiedLink] = useState(false)
+
+  const publicComplaintUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/pengaduan-siswa`
+    : 'http://localhost:5173/pengaduan-siswa'
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicComplaintUrl)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2500)
+  }
+
+  const handlePrintQr = () => {
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>QR Code Pengaduan Siswa - SMK IPTEK SANGGABUANA</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 40px; background: #fff; }
+              .card { max-width: 500px; margin: 0 auto; border: 2px dashed #0f172a; border-radius: 24px; padding: 32px; }
+              h1 { font-size: 22px; color: #0f172a; margin: 0 0 8px 0; }
+              .sub { color: #475569; font-size: 14px; margin-bottom: 24px; }
+              .qr-box { background: #f8fafc; padding: 24px; border-radius: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+              .url-box { margin-top: 20px; font-family: monospace; font-size: 13px; font-weight: bold; color: #1e293b; background: #e2e8f0; padding: 8px 16px; border-radius: 8px; word-break: break-all; }
+              .notice { margin-top: 24px; font-size: 12px; color: #64748b; line-height: 1.5; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>LAYANAN PENGADUAN SISWA & BK</h1>
+              <p class="sub">SMK IPTEK SANGGABUANA • Scan QR Code di bawah untuk membuat laporan:</p>
+              <div class="qr-box">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(publicComplaintUrl)}" width="220" height="220" alt="QR Code" />
+              </div>
+              <div class="url-box">${publicComplaintUrl}</div>
+              <p class="notice">
+                🔒 <strong>100% Rahasia & Bebas Login:</strong> Siswa tidak memerlukan akun login untuk melapor. Identitas pelapor dijamin aman oleh Guru BK.
+              </p>
+            </div>
+            <script>
+              window.onload = function() { window.print(); }
+            </script>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+    }
+  }
 
   const fetchData = useCallback(async () => {
     setIsLoading(true)
@@ -95,6 +152,116 @@ export function DashboardPage() {
         title={`Selamat Datang, ${user?.name || 'Pengguna'}`}
         description={`Panel Pemantauan Bimbingan Konseling & Presensi Siswa SMK IPTEK SANGGABUANA`}
       />
+
+      {/* QR Code Barcode Pengaduan Siswa (Khusus Guru BK) */}
+      <div className="bg-gradient-to-br from-navy-900 via-slate-900 to-navy-950 rounded-2xl border border-navy-700/80 p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+        {/* Decorative Glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-between">
+          {/* Left: Text & Info */}
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5 text-blue-400" /> Barcode Pengaduan Siswa
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                Akses Publik (Tanpa Login)
+              </span>
+            </div>
+
+            <div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                QR Code & Link Sistem Pengaduan Mandiri Siswa
+              </h2>
+              <p className="text-slate-300 text-xs sm:text-sm mt-1.5 leading-relaxed max-w-2xl">
+                Siswa tidak memiliki akun login. Mereka cukup memindai <strong>QR code / barcode</strong> ini menggunakan kamera HP untuk langsung memilih kelas, nama siswa yang ingin dilaporkan, dan mengisi jenis pelanggaran secara manual.
+              </p>
+            </div>
+
+            {/* Direct URL Box */}
+            <div className="p-3 bg-slate-800/90 border border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 max-w-xl">
+              <div className="truncate">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Link Langsung Form Siswa:
+                </span>
+                <a
+                  href={publicComplaintUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-blue-300 hover:text-blue-200 underline font-semibold truncate block mt-0.5"
+                >
+                  {publicComplaintUrl}
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Link</span>
+                    </>
+                  )}
+                </button>
+                <a
+                  href={publicComplaintUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handlePrintQr}
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-navy-800" />
+                <span>Cetak Poster QR Code untuk Mading / Kelas</span>
+              </button>
+              <span className="text-xs text-slate-400">
+                Dapat dicetak & ditempel di papan pengumuman sekolah
+              </span>
+            </div>
+          </div>
+
+          {/* Right: QR Code Visual Display */}
+          <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-slate-700/60 shrink-0 text-center flex flex-col items-center">
+            <div className="p-1.5 bg-white rounded-xl">
+              <QRCodeSVG
+                value={publicComplaintUrl}
+                size={140}
+                bgColor="#FFFFFF"
+                fgColor="#0F172A"
+                level="Q"
+                includeMargin={false}
+              />
+            </div>
+            <p className="mt-2 text-[10px] font-bold text-slate-800 tracking-wider uppercase">
+              Scan untuk Melapor
+            </p>
+            <span className="text-[9px] text-slate-500 font-mono">
+              BK SMK IPTEK
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

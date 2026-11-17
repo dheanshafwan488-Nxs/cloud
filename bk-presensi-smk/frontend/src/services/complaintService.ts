@@ -24,7 +24,61 @@ export interface AddFollowupPayload {
   followed_up_at?: string
 }
 
+export interface PublicComplaintPayload {
+  class_id: number
+  student_id: number
+  manual_violation: string
+  chronology: string
+  incident_at: string
+  reporter_name?: string
+  attachment?: File
+}
+
 export const complaintService = {
+  // Public Student Endpoints (Barcode / QR Code)
+  async getPublicClasses(): Promise<ApiResponse<Array<{ id: number; name: string; level: string; major: string }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{ id: number; name: string; level: string; major: string }>>>(
+      API_ENDPOINTS.PUBLIC.CLASSES
+    )
+    return response.data
+  },
+
+  async getPublicStudentsByClass(classId: number | string): Promise<ApiResponse<Array<{ id: number; name: string; nis: string }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{ id: number; name: string; nis: string }>>>(
+      API_ENDPOINTS.PUBLIC.CLASS_STUDENTS(classId)
+    )
+    return response.data
+  },
+
+  async submitPublicComplaint(payload: PublicComplaintPayload): Promise<ApiResponse<{
+    complaint_code: string
+    student_name: string
+    class_name: string
+    manual_violation: string
+    incident_at: string
+    status: string
+    created_at: string
+  }>> {
+    const formData = new FormData()
+    formData.append('class_id', String(payload.class_id))
+    formData.append('student_id', String(payload.student_id))
+    formData.append('manual_violation', payload.manual_violation)
+    formData.append('chronology', payload.chronology)
+    formData.append('incident_at', payload.incident_at)
+    if (payload.reporter_name) {
+      formData.append('reporter_name', payload.reporter_name)
+    }
+    if (payload.attachment) {
+      formData.append('attachment', payload.attachment)
+    }
+
+    const response = await apiClient.post(API_ENDPOINTS.PUBLIC.SUBMIT_COMPLAINT, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
   async getComplaints(filters?: ComplaintFilters): Promise<ApiResponse<Complaint[]>> {
     const response = await apiClient.get<ApiResponse<Complaint[]>>(API_ENDPOINTS.COMPLAINTS.LIST, {
       params: filters,

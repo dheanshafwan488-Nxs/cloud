@@ -37,6 +37,8 @@ class ComplaintService
                 'student_id'          => $data['student_id'],
                 'class_id'            => $data['class_id'],
                 'reported_by_user_id' => Auth::id(),
+                'reporter_name'       => $data['reporter_name'] ?? (Auth::user()?->name ?? 'Siswa (Anonim)'),
+                'manual_violation'    => $data['manual_violation'] ?? null,
                 'chronology'          => $data['chronology'],
                 'incident_at'         => $data['incident_at'],
                 'status'              => 'Pending',

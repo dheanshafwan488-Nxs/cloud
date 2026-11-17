@@ -51,6 +51,11 @@ class AuthController extends Controller
             return $this->errorResponse('Akun Anda tidak aktif. Hubungi administrator.', 403, 'ACCOUNT_INACTIVE');
         }
 
+        if ($user->role !== 'guru_bk') {
+            RateLimiter::hit($key, 60);
+            return $this->errorResponse('Akses login sistem ini dibatasi khusus untuk Guru BK. Siswa dan peran lain tidak memiliki akses login.', 403, 'FORBIDDEN_ROLE');
+        }
+
         RateLimiter::clear($key);
 
         Auth::login($user);
