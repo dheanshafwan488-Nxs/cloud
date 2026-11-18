@@ -108,6 +108,15 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
 // ─── Bot internal endpoints (service token) ──────────────────────────────────
 $botRoutes = function () {
     Route::post('verify', [TelegramBotController::class, 'verify']);
+    Route::post('unverify', [TelegramBotController::class, 'unverify']);
+    Route::get('students/search', [TelegramBotController::class, 'searchStudents']);
+    Route::get('students/{studentId}/overview', [TelegramBotController::class, 'studentOverview']);
+    Route::get('parent/{telegramId}/profile', [TelegramBotController::class, 'parentProfile']);
+    Route::get('parent/{telegramId}/attendance/today', [TelegramBotController::class, 'parentTodayAttendance']);
+    Route::get('parent/{telegramId}/attendance/history', [TelegramBotController::class, 'parentAttendanceHistory']);
+    Route::get('parent/{telegramId}/cases', [TelegramBotController::class, 'parentCases']);
+    Route::get('contact', [TelegramBotController::class, 'schoolContact']);
+    // Legacy compatibility routes
     Route::get('my-students', [TelegramBotController::class, 'myStudents']);
     Route::get('attendance', [TelegramBotController::class, 'attendance']);
     Route::get('attendance-history', [TelegramBotController::class, 'attendanceHistory']);

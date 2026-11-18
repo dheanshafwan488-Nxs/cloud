@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import logging
-from telegram import Update
+from telegram import Update, BotCommand
 from telegram.ext import (
     Application,
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
+    MessageHandler,
     ContextTypes,
+    filters,
 )
 from config import TELEGRAM_BOT_TOKEN, LOG_LEVEL
 from handlers.start import start_handler
@@ -16,6 +20,11 @@ from handlers.cases import kasus_handler
 from handlers.rekap import rekap_handler
 from handlers.help import help_handler
 from handlers.callback import button_callback_handler
+from handlers.student_lookup import (
+    cari_command_handler,
+    absensi_menu_handler,
+    text_menu_router,
+)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -23,23 +32,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+async def post_init(application: Application) -> None:
+    """Register compact, essential slash commands in Telegram's Menu button."""
+    commands = [
+        BotCommand("start", "Menu Utama & Tombol Layanan"),
+        BotCommand("cari", "Cari Data & Absensi Siswa (Nama/NIS)"),
+        BotCommand("absensi", "Cek Absensi Siswa Hari Ini"),
+        BotCommand("kasus", "Cek Catatan Bimbingan Konseling"),
+        BotCommand("bantuan", "Kontak Resmi Guru BK & Sekolah"),
+    ]
+    await application.bot.set_my_commands(commands)
+    logger.info("Bot commands menu berhasil didaftarkan ke Telegram.")
+
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
     if isinstance(update, Update) and update.effective_message:
         await update.effective_message.reply_text(
             "⚠️ Terjadi kendala saat memproses permintaan Anda ke server. "
-            "Silakan coba beberapa saat lagi atau hubungi pihak sekolah."
+            "Silakan coba beberapa saat lagi atau hubungi Guru BK."
         )
+
 
 def build_application() -> Application:
     if not TELEGRAM_BOT_TOKEN or TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN_FROM_BOTFATHER":
-        logger.warning("TELEGRAM_BOT_TOKEN belum diset. Gunakan bot token nyata dari @BotFather saat menjalankan di produksi.")
+        logger.warning("TELEGRAM_BOT_TOKEN belum diset. Gunakan bot token nyata dari @BotFather.")
 
-    # Create application instance
-    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN or "dummy_token").build()
+    app = (
+        ApplicationBuilder()
+        .token(TELEGRAM_BOT_TOKEN or "dummy_token")
+        .post_init(post_init)
+        .build()
+    )
 
-    # Register command handlers
+    # Core & compatibility command handlers
     app.add_handler(CommandHandler("start", start_handler))
+    app.add_handler(CommandHandler("cari", cari_command_handler))
+    app.add_handler(CommandHandler("absensi", absensi_menu_handler))
     app.add_handler(CommandHandler("verifikasi", verify_handler))
     app.add_handler(CommandHandler("batal_verifikasi", unverify_handler))
     app.add_handler(CommandHandler("profil", profile_handler))
@@ -49,10 +79,13 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("rekap", rekap_handler))
     app.add_handler(CommandHandler("bantuan", help_handler))
 
-    # Register inline button callback
+    # Inline button callbacks
     app.add_handler(CallbackQueryHandler(button_callback_handler))
 
-    # Register global error handler
+    # Bottom keyboard buttons + direct student search by text
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_menu_router))
+
+    # Global error handler
     app.add_error_handler(error_handler)
 
     return app

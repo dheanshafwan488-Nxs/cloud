@@ -22,6 +22,14 @@ class TelegramApiService:
         })
 
     @staticmethod
+    async def search_students(query: str) -> dict:
+        return await api_client.get("/api/v1/telegram-bot/students/search", params={"q": query})
+
+    @staticmethod
+    async def get_student_overview(student_id: int) -> dict:
+        return await api_client.get(f"/api/v1/telegram-bot/students/{student_id}/overview")
+
+    @staticmethod
     async def get_parent_profile(telegram_id: int) -> dict:
         return await api_client.get(f"/api/v1/telegram-bot/parent/{telegram_id}/profile")
 
