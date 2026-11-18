@@ -63,37 +63,35 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Decorative Rings */}
-      <div className="absolute top-0 -left-40 w-96 h-96 bg-navy-600/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-0 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
+    <div className="min-h-screen bg-slate-100 flex flex-col justify-center py-10 sm:py-12 px-4 sm:px-6 lg:px-8 text-slate-900">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo and Institution Title */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-navy-800 text-navy-200 border border-navy-700 shadow-xl mb-4">
-            <School className="w-8 h-8 text-blue-400" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-navy-900 text-white border border-navy-800 shadow-sm mb-3.5">
+            <School className="w-7 h-7 text-white" />
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-900/60 text-blue-300 border border-blue-700/60 mb-2">
-            Portal Khusus Guru BK
-          </span>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-navy-50 text-navy-900 border border-navy-200 mb-2">
+              Portal Khusus Guru BK
+            </span>
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
             {settings?.school_name || 'SMK IPTEK SANGGABUANA'}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm font-medium text-slate-600">
             Sistem Informasi Bimbingan Konseling & Layanan Pengaduan
           </p>
         </div>
 
         {/* Login Box */}
-        <div className="mt-6 bg-white/95 backdrop-blur-md py-8 px-6 shadow-2xl rounded-2xl sm:px-10 border border-slate-100">
+        <div className="mt-6 bg-white py-7 px-6 sm:px-8 shadow-lg rounded-2xl border border-slate-200">
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Error Notification */}
             {errorMessage && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 text-sm">
-                <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-xl flex items-start gap-3 text-rose-900 text-sm">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium">{errorMessage}</p>
+                  <p className="font-semibold">{errorMessage}</p>
                   {errorRequestId && (
                     <div className="mt-1.5">
                       <CopyRequestId requestId={errorRequestId} />
@@ -105,11 +103,11 @@ export function LoginPage() {
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">
                 Alamat Email Guru BK
               </label>
-              <div className="relative rounded-lg shadow-xs">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -119,18 +117,18 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="gurubk@smkiptek.sch.id"
-                  className="block w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-600 focus:bg-white transition-all text-slate-900"
+                  className="block w-full pl-10 pr-3.5 py-2.5 text-sm font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-600 focus:border-navy-600 transition-all text-slate-900 placeholder:text-slate-400 shadow-2xs"
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">
                 Kata Sandi
               </label>
-              <div className="relative rounded-lg shadow-xs">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -140,12 +138,12 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="block w-full pl-9 pr-10 py-2.5 text-sm bg-slate-50/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-600 focus:bg-white transition-all text-slate-900"
+                  className="block w-full pl-10 pr-10 py-2.5 text-sm font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-600 focus:border-navy-600 transition-all text-slate-900 placeholder:text-slate-400 shadow-2xs"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -157,7 +155,7 @@ export function LoginPage() {
               id="btn-login"
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-navy-800 hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-600 disabled:opacity-50 transition-colors cursor-pointer"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-navy-900 hover:bg-navy-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-600 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
@@ -171,30 +169,30 @@ export function LoginPage() {
           </form>
 
           {/* Quick Demo Access Bar for Guru BK */}
-          <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="mt-5 pt-4 border-t border-slate-200">
             <button
               id="btn-demo-bk"
               type="button"
               onClick={handleQuickFillBk}
-              className="w-full p-2.5 border border-blue-200 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-blue-900 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="w-full py-2.5 px-3 border border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
-              🤝 Klik Disini: Isi Akun Demo Guru BK
+              Isi Otomatis Akun Demo Guru BK
             </button>
           </div>
         </div>
 
         {/* Student Complaint Notice & Direct Link */}
-        <div className="mt-5 bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-700/80 rounded-2xl p-4 text-center shadow-lg">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <QrCode className="w-4 h-4" />
-            <span>Siswa Tidak Memiliki Akses Login</span>
+        <div className="mt-5 bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-sm">
+          <div className="inline-flex items-center justify-center gap-1.5 text-emerald-900 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2.5">
+            <QrCode className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Akses Pengaduan Siswa (Tanpa Login)</span>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Siswa cukup memindai <strong>QR Code / Barcode</strong> atau mengklik tautan di bawah untuk langsung mengisi formulir pengaduan secara mandiri & rahasia.
+          <p className="text-xs text-slate-700 leading-relaxed">
+            Siswa cukup memindai <strong>QR Code</strong> atau membuka tautan di bawah untuk melapor. Identitas pelapor diverifikasi agar bebas fitnah dan <strong>hanya diketahui oleh Guru BK</strong>.
           </p>
           <Link
             to="/pengaduan-siswa"
-            className="mt-3 inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors"
+            className="mt-3.5 inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
           >
             <span>Buka Formulir Pengaduan Siswa</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -202,8 +200,8 @@ export function LoginPage() {
         </div>
 
         {/* Security Notice */}
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Akses login sistem dibatasi khusus untuk Guru BK SMK IPTEK SANGGABUANA.
+        <p className="mt-4 text-center text-xs font-medium text-slate-500">
+          Akses login dibatasi khusus untuk Guru BK {settings?.school_name || 'SMK IPTEK SANGGABUANA'}.
         </p>
       </div>
 

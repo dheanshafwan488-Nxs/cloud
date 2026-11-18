@@ -69,10 +69,10 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+        <table className="w-full text-left text-sm text-slate-800">
+          <thead className="bg-slate-100/90 text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200">
             <tr>
               {columns.map((col) => (
                 <th key={col.key} className={`px-4 py-3.5 ${col.className || ''}`}>
@@ -81,11 +81,11 @@ export function DataTable<T extends Record<string, any>>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-200/80">
             {data.map((row, index) => {
               const key = rowKey ? rowKey(row, index) : row.id || index
               return (
-                <tr key={key} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={key} className="hover:bg-slate-50 transition-colors">
                   {columns.map((col) => (
                     <td key={col.key} className={`px-4 py-3.5 align-middle ${col.className || ''}`}>
                       {col.render ? col.render(row, index) : row[col.key]}

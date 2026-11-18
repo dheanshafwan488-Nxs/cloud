@@ -5,6 +5,7 @@ import { ApiResponse, Complaint, ComplaintFilters, ComplaintStatus, CaseFollowup
 export interface CreateComplaintPayload {
   student_id: number
   class_id?: number
+  reporter_name?: string
   chronology: string
   incident_at: string
   violation_ids?: number[]
@@ -25,19 +26,20 @@ export interface AddFollowupPayload {
 }
 
 export interface PublicComplaintPayload {
+  reporter_class_id: number
+  reporter_student_id: number
   class_id: number
   student_id: number
   manual_violation: string
   chronology: string
   incident_at: string
-  reporter_name?: string
-  attachment?: File
+  attachment: File
 }
 
 export const complaintService = {
   // Public Student Endpoints (Barcode / QR Code)
-  async getPublicClasses(): Promise<ApiResponse<Array<{ id: number; name: string; level: string; major: string }>>> {
-    const response = await apiClient.get<ApiResponse<Array<{ id: number; name: string; level: string; major: string }>>>(
+  async getPublicClasses(): Promise<ApiResponse<Array<{ id: number; name: string; grade_level?: string; level?: string; major?: string }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{ id: number; name: string; grade_level?: string; level?: string; major?: string }>>>(
       API_ENDPOINTS.PUBLIC.CLASSES
     )
     return response.data
@@ -52,6 +54,7 @@ export const complaintService = {
 
   async submitPublicComplaint(payload: PublicComplaintPayload): Promise<ApiResponse<{
     complaint_code: string
+    reporter_name: string
     student_name: string
     class_name: string
     manual_violation: string
@@ -60,17 +63,14 @@ export const complaintService = {
     created_at: string
   }>> {
     const formData = new FormData()
+    formData.append('reporter_class_id', String(payload.reporter_class_id))
+    formData.append('reporter_student_id', String(payload.reporter_student_id))
     formData.append('class_id', String(payload.class_id))
     formData.append('student_id', String(payload.student_id))
     formData.append('manual_violation', payload.manual_violation)
     formData.append('chronology', payload.chronology)
     formData.append('incident_at', payload.incident_at)
-    if (payload.reporter_name) {
-      formData.append('reporter_name', payload.reporter_name)
-    }
-    if (payload.attachment) {
-      formData.append('attachment', payload.attachment)
-    }
+    formData.append('attachment', payload.attachment)
 
     const response = await apiClient.post(API_ENDPOINTS.PUBLIC.SUBMIT_COMPLAINT, formData, {
       headers: {
@@ -103,6 +103,7 @@ export const complaintService = {
     const formData = new FormData()
     formData.append('student_id', String(payload.student_id))
     if (payload.class_id) formData.append('class_id', String(payload.class_id))
+    if (payload.reporter_name) formData.append('reporter_name', payload.reporter_name)
     formData.append('chronology', payload.chronology)
     formData.append('incident_at', payload.incident_at)
     formData.append('parent_visible', payload.parent_visible ? '1' : '0')

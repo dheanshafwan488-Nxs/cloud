@@ -59,42 +59,68 @@ class PublicComplaintController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'class_id'         => ['required', 'integer', 'exists:classes,id'],
-            'student_id'       => ['required', 'integer', 'exists:students,id'],
-            'manual_violation' => ['required', 'string', 'min:3', 'max:255'],
-            'chronology'       => ['required', 'string', 'min:10', 'max:5000'],
-            'incident_at'      => ['required', 'date'],
-            'reporter_name'    => ['nullable', 'string', 'max:150'],
-            'attachment'       => ['required', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:5120'],
+            'reporter_class_id'   => ['required', 'integer', 'exists:classes,id'],
+            'reporter_student_id' => ['required', 'integer', 'exists:students,id'],
+            'class_id'            => ['required', 'integer', 'exists:classes,id'],
+            'student_id'          => ['required', 'integer', 'exists:students,id'],
+            'manual_violation'    => ['required', 'string', 'min:3', 'max:255'],
+            'chronology'          => ['required', 'string', 'min:10', 'max:5000'],
+            'incident_at'         => ['required', 'date'],
+            'attachment'          => ['required', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:5120'],
         ], [
-            'class_id.required'         => 'Pilih kelas siswa yang ingin dilaporkan.',
-            'student_id.required'       => 'Pilih nama siswa yang ingin dilaporkan.',
-            'manual_violation.required' => 'Tuliskan jenis pelanggaran yang terjadi (misal: merokok, bolos, membawa handphone, dll).',
-            'chronology.required'       => 'Jelaskan kronologi atau keterangan kejadian.',
-            'chronology.min'            => 'Keterangan kejadian minimal 10 karakter.',
-            'incident_at.required'      => 'Tentukan tanggal atau waktu kejadian.',
-            'attachment.required'       => 'Lampiran bukti foto kejadian wajib diunggah.',
-            'attachment.file'           => 'Berkas lampiran harus berupa file yang valid.',
-            'attachment.mimes'          => 'Format file bukti harus berupa foto (JPG, PNG, WEBP) atau PDF.',
-            'attachment.max'            => 'Ukuran file bukti maksimal 5 MB.',
+            'reporter_class_id.required'   => 'Pilih kelas Anda sebagai pelapor.',
+            'reporter_student_id.required' => 'Pilih nama Anda sebagai pelapor untuk mencegah laporan palsu/fitnah.',
+            'class_id.required'            => 'Pilih kelas siswa yang ingin dilaporkan.',
+            'student_id.required'          => 'Pilih nama siswa yang ingin dilaporkan.',
+            'manual_violation.required'    => 'Tuliskan jenis pelanggaran yang terjadi (misal: merokok, bolos, membawa handphone, dll).',
+            'chronology.required'          => 'Jelaskan kronologi atau keterangan kejadian.',
+            'chronology.min'               => 'Keterangan kejadian minimal 10 karakter.',
+            'incident_at.required'         => 'Tentukan tanggal atau waktu kejadian.',
+            'attachment.required'          => 'Lampiran bukti foto kejadian wajib diunggah.',
+            'attachment.file'              => 'Berkas lampiran harus berupa file yang valid.',
+            'attachment.mimes'             => 'Format file bukti harus berupa foto (JPG, PNG, WEBP) atau PDF.',
+            'attachment.max'               => 'Ukuran file bukti maksimal 5 MB.',
         ]);
 
-        $student = Student::where('id', $data['student_id'])
+        $reporterStudent = Student::with('class')
+            ->where('id', $data['reporter_student_id'])
+            ->where('class_id', $data['reporter_class_id'])
+            ->first();
+
+        if (!$reporterStudent) {
+            return response()->json([
+                'success'    => false,
+                'message'    => 'Identitas siswa pelapor tidak cocok dengan kelas yang dipilih.',
+                'error_code' => 'REPORTER_CLASS_MISMATCH',
+                'request_id' => app()->bound('request.id') ? app('request.id') : null,
+            ], 422);
+        }
+
+        $student = Student::with('class')
+            ->where('id', $data['student_id'])
             ->where('class_id', $data['class_id'])
             ->first();
 
         if (!$student) {
             return response()->json([
                 'success'    => false,
-                'message'    => 'Siswa yang dipilih tidak terdaftar di kelas tersebut.',
+                'message'    => 'Siswa yang dilaporkan tidak terdaftar di kelas tersebut.',
                 'error_code' => 'STUDENT_CLASS_MISMATCH',
                 'request_id' => app()->bound('request.id') ? app('request.id') : null,
             ], 422);
         }
 
-        $reporterName = !empty($data['reporter_name']) && trim($data['reporter_name']) !== ''
-            ? trim($data['reporter_name'])
-            : 'Siswa (Anonim / Terlindungi)';
+        if ((int) $reporterStudent->id === (int) $student->id) {
+            return response()->json([
+                'success'    => false,
+                'message'    => 'Siswa pelapor dan siswa yang dilaporkan tidak boleh orang yang sama.',
+                'error_code' => 'SELF_REPORT_NOT_ALLOWED',
+                'request_id' => app()->bound('request.id') ? app('request.id') : null,
+            ], 422);
+        }
+
+        $reporterClassName = $reporterStudent->class?->name ?: 'Kelas Terdaftar';
+        $reporterName = "{$reporterStudent->name} (NIS: {$reporterStudent->nis} • {$reporterClassName})";
 
         $complaintData = [
             'student_id'       => $student->id,
@@ -122,10 +148,11 @@ class PublicComplaintController extends Controller
 
         return response()->json([
             'success'    => true,
-            'message'    => 'Pengaduan berhasil dikirim ke Guru BK. Laporan Anda dijaga kerahasiaannya.',
+            'message'    => 'Pengaduan berhasil dikirim ke Guru BK. Identitas pelapor dijaga kerahasiaannya dan hanya diketahui oleh Guru BK.',
             'request_id' => app()->bound('request.id') ? app('request.id') : null,
             'data'       => [
                 'complaint_code'   => $complaint->complaint_code,
+                'reporter_name'    => $reporterName,
                 'student_name'     => $student->name,
                 'class_name'       => $student->class?->name,
                 'manual_violation' => $complaint->manual_violation,

@@ -13,21 +13,21 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const { settings } = useSchoolSettings()
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+    <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-2 -ml-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 lg:hidden"
+          className="p-2 -ml-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 lg:hidden"
           title="Buka Navigasi"
         >
           <Menu className="w-5 h-5" />
         </button>
         <div className="hidden sm:block">
-          <span className="text-xs font-medium text-slate-400">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {settings?.school_name || 'SMK IPTEK SANGGABUANA'}
           </span>
-          <p className="text-sm font-semibold text-slate-800 -mt-0.5">Sistem BK & Presensi</p>
+          <p className="text-sm font-bold text-slate-900 -mt-0.5">Portal Bimbingan Konseling & Presensi</p>
         </div>
       </div>
 
@@ -36,11 +36,11 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/profile"
-              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 transition-colors group"
+              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-100/80 transition-colors group"
               title="Klik untuk mengedit profil akun Anda"
             >
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-slate-800 leading-tight group-hover:text-navy-700 transition-colors">
+                <p className="text-sm font-bold text-slate-900 leading-tight group-hover:text-navy-800 transition-colors">
                   {user.name}
                 </p>
                 <div className="mt-0.5">
@@ -48,7 +48,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                 </div>
               </div>
 
-              <div className="w-9 h-9 rounded-full bg-navy-50 border border-navy-100 group-hover:border-navy-300 flex items-center justify-center text-navy-700 font-bold transition-all shadow-2xs">
+              <div className="w-9 h-9 rounded-full bg-navy-900 text-white border border-navy-800 flex items-center justify-center font-bold transition-all shadow-2xs text-sm">
                 {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-5 h-5" />}
               </div>
             </Link>
@@ -56,7 +56,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
             <button
               type="button"
               onClick={() => logout()}
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+              className="p-2 text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-colors ml-1 cursor-pointer"
               title="Keluar dari akun"
             >
               <LogOut className="w-4 h-4" />

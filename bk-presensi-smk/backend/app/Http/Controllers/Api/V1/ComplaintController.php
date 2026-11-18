@@ -74,12 +74,18 @@ class ComplaintController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'student_id'    => ['required', 'integer', 'exists:students,id'],
-            'chronology'    => ['required', 'string', 'min:20', 'max:5000'],
-            'incident_at'   => ['required', 'date'],
-            'violation_ids' => ['nullable', 'array'],
+            'student_id'      => ['required', 'integer', 'exists:students,id'],
+            'reporter_name'   => ['nullable', 'string', 'max:200'],
+            'chronology'      => ['required', 'string', 'min:10', 'max:5000'],
+            'incident_at'     => ['required', 'date'],
+            'violation_ids'   => ['nullable', 'array'],
             'violation_ids.*' => ['integer', 'exists:violations,id'],
-            'parent_visible' => ['boolean'],
+            'parent_visible'  => ['boolean'],
+            'attachment'      => ['required', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:5120'],
+        ], [
+            'attachment.required' => 'Lampiran bukti foto atau dokumen wajib diunggah.',
+            'attachment.mimes'    => 'Format lampiran harus berupa foto (JPG, PNG, WEBP) atau PDF.',
+            'attachment.max'      => 'Ukuran file lampiran maksimal 5 MB.',
         ]);
 
         $student  = \App\Models\Student::findOrFail($data['student_id']);
@@ -87,11 +93,15 @@ class ComplaintController extends Controller
 
         $complaint = $this->complaintService->createComplaint($data);
 
+        if ($request->hasFile('attachment')) {
+            $this->complaintService->storeAttachment($complaint, $request->file('attachment'));
+        }
+
         return response()->json([
             'success'    => true,
             'message'    => 'Pengaduan berhasil dibuat.',
             'request_id' => app('request.id'),
-            'data'       => $complaint,
+            'data'       => $complaint->load('attachments'),
         ], 201);
     }
 

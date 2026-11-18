@@ -21,13 +21,13 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={`space-y-1.5 ${className}`}>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-800">
         {label}
-        {required && <span className="text-rose-500 ml-1">*</span>}
+        {required && <span className="text-rose-600 ml-1">*</span>}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-slate-500">{hint}</p>}
-      {error && <p className="text-xs font-medium text-rose-600">{error}</p>}
+      {hint && !error && <p className="text-xs font-medium text-slate-600">{hint}</p>}
+      {error && <p className="text-xs font-semibold text-rose-700">{error}</p>}
     </div>
   )
 }

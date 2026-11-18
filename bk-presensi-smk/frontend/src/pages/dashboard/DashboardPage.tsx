@@ -86,7 +86,7 @@ export function DashboardPage() {
               </div>
               <div class="url-box">${publicComplaintUrl}</div>
               <p class="notice">
-                🔒 <strong>100% Rahasia & Bebas Login:</strong> Siswa tidak memerlukan akun login untuk melapor. Identitas pelapor dijamin aman oleh Guru BK.
+                🔒 <strong>Bebas Login & Terlindungi:</strong> Siswa tidak memerlukan akun login untuk melapor. Siswa pelapor wajib memilih identitas dirinya untuk mencegah fitnah, dan identitas pelapor <strong>hanya diketahui oleh Guru BK</strong>.
               </p>
             </div>
             <script>
@@ -154,19 +154,15 @@ export function DashboardPage() {
       />
 
       {/* QR Code Barcode Pengaduan Siswa (Khusus Guru BK) */}
-      <div className="bg-gradient-to-br from-navy-900 via-slate-900 to-navy-950 rounded-2xl border border-navy-700/80 p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
-        {/* Decorative Glow */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-between">
+      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 sm:p-6 text-white shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
           {/* Left: Text & Info */}
           <div className="flex-1 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 flex items-center gap-1.5">
-                <QrCode className="w-3.5 h-3.5 text-blue-400" /> Barcode Pengaduan Siswa
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 text-slate-100 border border-white/15 flex items-center gap-1.5">
+                <QrCode className="w-3.5 h-3.5 text-blue-300" /> Barcode Pengaduan Siswa
               </span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
                 Akses Publik (Tanpa Login)
               </span>
             </div>
@@ -176,14 +172,14 @@ export function DashboardPage() {
                 QR Code & Link Sistem Pengaduan Mandiri Siswa
               </h2>
               <p className="text-slate-300 text-xs sm:text-sm mt-1.5 leading-relaxed max-w-2xl">
-                Siswa tidak memiliki akun login. Mereka cukup memindai <strong>QR code / barcode</strong> ini menggunakan kamera HP untuk langsung memilih kelas, nama siswa yang ingin dilaporkan, dan mengisi jenis pelanggaran secara manual.
+                Siswa tidak memiliki akun login. Mereka cukup memindai <strong className="text-white">QR Code</strong> ini untuk mengisi identitas pelapor (dijaga rahasia, khusus Guru BK), memilih siswa yang dilaporkan, menulis jenis pelanggaran, serta mengunggah bukti foto.
               </p>
             </div>
 
             {/* Direct URL Box */}
-            <div className="p-3 bg-slate-800/90 border border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 max-w-xl">
+            <div className="p-3 bg-slate-950/80 border border-slate-700/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 max-w-xl">
               <div className="truncate">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Link Langsung Form Siswa:
                 </span>
                 <a
@@ -200,7 +196,7 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copiedLink ? (
                     <>
@@ -218,7 +214,7 @@ export function DashboardPage() {
                   href={publicComplaintUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-1.5 bg-navy-600 hover:bg-navy-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Buka</span>
@@ -230,9 +226,9 @@ export function DashboardPage() {
               <button
                 type="button"
                 onClick={handlePrintQr}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                <Printer className="w-4 h-4 text-navy-800" />
+                <Printer className="w-4 h-4 text-navy-900" />
                 <span>Cetak Poster QR Code untuk Mading / Kelas</span>
               </button>
               <span className="text-xs text-slate-400">
@@ -242,8 +238,8 @@ export function DashboardPage() {
           </div>
 
           {/* Right: QR Code Visual Display */}
-          <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-slate-700/60 shrink-0 text-center flex flex-col items-center">
-            <div className="p-1.5 bg-white rounded-xl">
+          <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-200 shrink-0 text-center flex flex-col items-center">
+            <div className="p-1 bg-white rounded-xl">
               <QRCodeSVG
                 value={publicComplaintUrl}
                 size={140}
@@ -253,10 +249,10 @@ export function DashboardPage() {
                 includeMargin={false}
               />
             </div>
-            <p className="mt-2 text-[10px] font-bold text-slate-800 tracking-wider uppercase">
+            <p className="mt-2 text-[10px] font-bold text-slate-900 tracking-wider uppercase">
               Scan untuk Melapor
             </p>
-            <span className="text-[9px] text-slate-500 font-mono">
+            <span className="text-[10px] text-slate-600 font-mono font-semibold">
               BK SMK IPTEK
             </span>
           </div>
@@ -275,59 +271,59 @@ export function DashboardPage() {
         ) : (
           <>
             {/* Card 1: Siswa Aktif */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
                   Total Siswa Aktif
                 </p>
-                <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
                   {summary?.total_students ?? 0}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Terdaftar di sistem</p>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">Terdaftar di sistem</p>
               </div>
-              <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
                 <Users className="w-6 h-6" />
               </div>
             </div>
 
             {/* Card 2: Kelas Aktif */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
                   Total Kelas
                 </p>
-                <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                <h3 className="text-2xl font-extrabold text-slate-900 mt-1">
                   {summary?.total_classes ?? 0}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Tingkat X, XI, XII</p>
+                <p className="text-xs font-medium text-slate-500 mt-0.5">Tingkat X, XI, XII</p>
               </div>
-              <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
+              <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700">
                 <GraduationCap className="w-6 h-6" />
               </div>
             </div>
 
             {/* Card 3: Kehadiran Hari Ini */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
                   Hadir Hari Ini
                 </p>
-                <h3 className="text-2xl font-bold text-emerald-600 mt-1">
+                <h3 className="text-2xl font-extrabold text-emerald-700 mt-1">
                   {summary?.attendance_today?.hadir ?? 0}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs font-medium text-slate-600 mt-0.5">
                   S: {summary?.attendance_today?.sakit ?? 0} | I: {summary?.attendance_today?.izin ?? 0} | A: {summary?.attendance_today?.alpa ?? 0}
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
             </div>
 
             {/* Card 4: Pengaduan Aktif */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
                   Pengaduan BK
                 </p>
                 <h3 className="text-2xl font-bold text-amber-600 mt-1">
