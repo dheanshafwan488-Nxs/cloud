@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from api_client import api_client
 

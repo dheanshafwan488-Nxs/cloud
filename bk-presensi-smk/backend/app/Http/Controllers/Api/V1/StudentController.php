@@ -204,7 +204,8 @@ class StudentController extends Controller
 
     public function getVerificationCode(Student $student): JsonResponse
     {
-        $botUsername = env('TELEGRAM_BOT_USERNAME', 'SMKIptekSanggabuana_bot');
+        $rawUsername = \App\Models\Setting::get('telegram_bot_username') ?: env('TELEGRAM_BOT_USERNAME', 'SMKIptekSanggabuana_bot');
+        $botUsername = ltrim(trim($rawUsername), '@');
 
         $activeCode = ParentVerificationCode::where('student_id', $student->id)
             ->whereNull('used_at')
