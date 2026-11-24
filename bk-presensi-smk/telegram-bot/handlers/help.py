@@ -25,11 +25,12 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         msg += (
             "\n📌 *Bantuan Perintah Bot:*\n"
-            "• `/verifikasi <NIS> <KODE>` — Verifikasi akun orang tua\n"
-            "• `/masuk` — Cek presensi hari ini\n"
-            "• `/absen` — 10 riwayat kehadiran\n"
-            "• `/kasus` — Laporan catatan bimbingan terbuka\n"
-            "• `/profil` — Data anak yang terhubung\n"
+            "• `/cari` — Cari siswa berdasarkan Nama, NIS, atau Kelas\n"
+            "• `/kelas` — Tampilkan daftar kelas dan murid\n"
+            "• `/masuk` — Cek presensi hari ini (bisa: `/masuk <nama/nis>`)\n"
+            "• `/absen` — 10 riwayat kehadiran (bisa: `/absen <nama/nis>`)\n"
+            "• `/kasus` — Catatan BK siswa (bisa: `/kasus <nama/nis>`)\n"
+            "• `/profil` — Info akun dan status akses\n"
         )
     else:
         msg = (

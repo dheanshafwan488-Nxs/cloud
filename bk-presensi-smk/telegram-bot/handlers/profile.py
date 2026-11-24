@@ -1,38 +1,22 @@
+from __future__ import annotations
+
 from telegram import Update
 from telegram.ext import ContextTypes
-from services.api_service import TelegramApiService
+from handlers.keyboards import get_main_menu_keyboard
+
 
 async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     if not user:
         return
 
-    resp = await TelegramApiService.get_parent_profile(telegram_id=user.id)
-
-    if not resp.get("success"):
-        await update.message.reply_text(
-            "⚠️ *Akun Belum Terverifikasi*\n\n"
-            "Anda belum menghubungkan akun Telegram dengan siswa manapun.\n"
-            "Gunakan `/verifikasi <NIS> <KODE>` untuk menghubungkan data anak Anda.",
-            parse_mode="Markdown"
-        )
-        return
-
-    data = resp.get("data", {})
-    parent_name = data.get("parent_name", user.full_name)
-    students = data.get("students", [])
-
-    msg = f"👤 *Profil Wali Murid Terverifikasi*\n"
-    msg += f"Nama Wali: *{parent_name}*\n"
-    msg += f"ID Telegram: `{user.id}`\n\n"
-    msg += f"🎓 *Daftar Siswa Terhubung ({len(students)}):*\n"
-
-    for i, s in enumerate(students, 1):
-        msg += (
-            f"\n{i}. *{s.get('name')}*\n"
-            f"   • NIS: `{s.get('nis')}`\n"
-            f"   • Kelas: {s.get('class_name', '-')}\n"
-            f"   • Status: {s.get('enrollment_status', 'aktif')}\n"
-        )
-
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    name = user.full_name or user.first_name or "Bapak/Ibu"
+    msg = (
+        f"👤 *Profil Pengguna Layanan*\n"
+        f"• *Nama Akun:* {name}\n"
+        f"• *Chat ID:* `{user.id}`\n\n"
+        "ℹ️ *Status Akses: Terbuka untuk Semua Siswa*\n"
+        "Sistem ini tidak membatasi akses pada murid tertentu. Anda dapat langsung mencari, memilih kelas, dan mengecek data presensi serta catatan BK siswa siapa saja secara bebas dan mudah.\n\n"
+        "Silakan gunakan tombol menu di bawah untuk mulai mencari data siswa:"
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=get_main_menu_keyboard())

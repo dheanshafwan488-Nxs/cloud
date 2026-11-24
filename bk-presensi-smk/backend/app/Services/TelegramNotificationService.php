@@ -23,8 +23,8 @@ class TelegramNotificationService
 
     public static function isNotificationEnabled(): bool
     {
-        $val = \App\Models\Setting::get('telegram_notifications_enabled', '1');
-        return in_array($val, ['1', 'true', true], true);
+        // Notifikasi Telegram ke orang tua dinonaktifkan sesuai permintaan pengguna
+        return false;
     }
 
     /**

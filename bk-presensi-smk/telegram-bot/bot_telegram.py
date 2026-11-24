@@ -87,7 +87,7 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("profil", profile_handler))
     app.add_handler(CommandHandler("masuk", masuk_handler))
     app.add_handler(CommandHandler("absen", absen_history_handler))
-    app.add_handler(CommandHandler("kasus", bk_menu_handler))
+    app.add_handler(CommandHandler("kasus", kasus_handler))
     app.add_handler(CommandHandler("rekap", rekap_handler))
     app.add_handler(CommandHandler("bantuan", help_handler))
 

@@ -89,12 +89,12 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     elif data == "verify_guide":
         await query.message.reply_text(
-            "🔗 *Cara Aktivasi Notifikasi Otomatis Wali Murid*\n\n"
-            "1. Minta *Kartu Akses / Kode Verifikasi* dari Guru BK sekolah.\n"
-            "2. Pindai QR Code pada kartu, atau ketik perintah:\n"
-            "   `/verifikasi <NIS> <KODE>`\n"
-            "   Contoh: `/verifikasi 2026001 DEMO123`\n\n"
-            "Setelah terhubung, Anda akan otomatis mendapat notifikasi setiap anak Alpa/Sakit/Izin atau ada info BK.",
+            "ℹ️ *Informasi Akses Siswa*\n\n"
+            "Sistem ini terbuka dan tidak memerlukan verifikasi akun Telegram.\n\n"
+            "Bapak/Ibu dapat langsung mengecek data presensi dan catatan BK siswa siapa saja dengan cara:\n"
+            "1. Mengetik nama atau NIS siswa langsung di kolom chat.\n"
+            "2. Memilih kelas lewat tombol *🏫 Pilih Kelas & Siswa*.\n"
+            "3. Menggunakan perintah seperti `/masuk [nama]` atau `/absen [nama]`.",
             parse_mode="Markdown",
         )
 

@@ -398,163 +398,57 @@ async def kelas_command_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def absensi_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
     message = update.effective_message
-    if not user or not message:
+    if not message:
         return
 
-    resp = await TelegramApiService.get_today_attendance(telegram_id=user.id)
-    if resp.get("success") and resp.get("data", {}).get("records"):
-        records = resp["data"]["records"]
-        date_str = resp["data"].get("date", "-")
-        lines = [f"📅 *Absensi Siswa Hari Ini ({date_str})*\n"]
-        first_student_id = None
-        for item in records:
-            if first_student_id is None:
-                first_student_id = item.get("student_id")
-            student_name = item.get("student_name", "Siswa")
-            nis = item.get("nis", "-")
-            class_name = item.get("class_name", "-")
-            status = item.get("status")
-            notes = item.get("notes")
-            summary = item.get("summary", {})
-
-            if status:
-                icon = STATUS_ICONS.get(status, "⚪")
-                status_text = f"{icon} *{status}*" + (f" (_{notes}_)" if notes else "")
-            else:
-                status_text = "⏳ _Belum dicatat hari ini_"
-
-            lines.append(
-                f"👤 *{student_name}* ({class_name} • `{nis}`)\n"
-                f"• Status: {status_text}\n"
-                f"• Rekap: 🟢 {summary.get('hadir', 0)} | 🟡 {summary.get('sakit', 0)} | 🔵 {summary.get('izin', 0)} | 🔴 {summary.get('alpa', 0)} (*{summary.get('percentage', 100)}%*)\n"
-            )
-
-        buttons = []
-        if first_student_id:
-            buttons.append([
-                InlineKeyboardButton("📋 Lihat 10 Riwayat Absen", callback_data=f"student_history:{first_student_id}"),
-                InlineKeyboardButton("🔍 Cek Siswa Lain", callback_data="prompt_search"),
-            ])
-        else:
-            buttons.append([InlineKeyboardButton("🔍 Cek Siswa Lain", callback_data="prompt_search")])
-
-        await message.reply_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(buttons),
-        )
-        return
-
-    # Not verified yet -> let parent immediately type student name/NIS
     context.user_data["awaiting_student_search"] = "overview"
     await message.reply_text(
-        "📅 *Cek Absensi Siswa*\n\n"
-        "Silakan ketik *Nama Siswa* atau *NIS* anak Anda untuk melihat status kehadiran hari ini & rekap absensi.\n"
-        "Contoh: `Budi` atau `2026001`\n\n"
-        "💡 _Tip: Untuk notifikasi absensi otomatis, hubungkan akun dengan `/verifikasi <NIS> <KODE>` dari Guru BK._",
+        "📅 *Cek Absensi Siswa Hari Ini*\n\n"
+        "Silakan ketik langsung *Nama Siswa*, *NIS*, atau *Nama Kelas* di kolom chat (contoh: `Budi`, `X RPL`, atau `2026001`), "
+        "atau pilih langsung dari daftar kelas di bawah untuk melihat status kehadiran hari ini dan rekap absensi:",
         parse_mode="Markdown",
-        reply_markup=get_main_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data="browse_classes:overview")],
+            [InlineKeyboardButton("🔍 Ketik Nama / NIS Manual", callback_data="prompt_search")],
+        ]),
     )
 
 
 async def riwayat_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
     message = update.effective_message
-    if not user or not message:
-        return
-
-    resp = await TelegramApiService.get_attendance_history(telegram_id=user.id)
-    if resp.get("success"):
-        data = resp.get("data", [])
-        if not data:
-            await message.reply_text(
-                "📋 Belum ada riwayat presensi yang tercatat untuk anak Anda.",
-                reply_markup=get_main_menu_keyboard(),
-            )
-            return
-
-        lines = ["📋 *10 Riwayat Presensi Terbaru*\n"]
-        for idx, row in enumerate(data[:10], 1):
-            status = row.get("status", "-")
-            icon = STATUS_ICONS.get(status, "⚪")
-            date_val = row.get("date", "-")
-            student_name = row.get("student_name", "")
-            notes = row.get("notes")
-            line = f"{idx}. *{date_val}* — {icon} {status}"
-            if student_name:
-                line += f" ({student_name})"
-            if notes:
-                line += f"\n   _{notes}_"
-            lines.append(line)
-
-        await message.reply_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔍 Cek Riwayat Siswa Lain", callback_data="prompt_search_history")]
-            ]),
-        )
+    if not message:
         return
 
     context.user_data["awaiting_student_search"] = "history"
     await message.reply_text(
-        "📋 *Riwayat Absensi Siswa*\n\n"
-        "Ketik *Nama Siswa* atau *NIS* untuk melihat 10 riwayat kehadiran terakhir.\n"
-        "Contoh: `Budi` atau `2026001`",
+        "📋 *Cek Riwayat Absensi Siswa*\n\n"
+        "Silakan ketik langsung *Nama Siswa*, *NIS*, atau *Nama Kelas* di kolom chat (contoh: `Budi`, `X RPL`, atau `2026001`), "
+        "atau pilih langsung dari daftar kelas di bawah untuk melihat 10 riwayat kehadiran terakhir:",
         parse_mode="Markdown",
-        reply_markup=get_main_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data="browse_classes:history")],
+            [InlineKeyboardButton("🔍 Ketik Nama / NIS Manual", callback_data="prompt_search_history")],
+        ]),
     )
 
 
 async def bk_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
     message = update.effective_message
-    if not user or not message:
-        return
-
-    resp = await TelegramApiService.get_student_cases(telegram_id=user.id)
-    if resp.get("success"):
-        cases = resp.get("data", [])
-        buttons = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("📞 Kontak Guru BK", callback_data="contact_bk"),
-                InlineKeyboardButton("📅 Buat Janji Temu", callback_data="appointment_bk"),
-            ],
-            [InlineKeyboardButton("🔍 Cek Catatan Siswa Lain", callback_data="prompt_search_cases")],
-        ])
-        if not cases:
-            await message.reply_text(
-                "🛡️ *Catatan Bimbingan Konseling*\n\n"
-                "✅ Saat ini tidak ada catatan kasus kedisiplinan terbuka untuk anak Anda.",
-                parse_mode="Markdown",
-                reply_markup=buttons,
-            )
-            return
-
-        lines = [f"⚠️ *Catatan Bimbingan Konseling ({len(cases)} Kasus)*\n"]
-        for i, c in enumerate(cases, 1):
-            lines.append(
-                f"{i}. *#{c.get('complaint_code', '-')}* ({c.get('status', '-')})\n"
-                f"   • Siswa: {c.get('student_name', 'Siswa')}\n"
-                f"   • Tanggal: {c.get('incident_at', '-')}\n"
-                f"   • Keterangan: _{c.get('summary', '-')}_"
-            )
-        await message.reply_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=buttons,
-        )
+    if not message:
         return
 
     context.user_data["awaiting_student_search"] = "cases"
     await message.reply_text(
-        "🛡️ *Cek Catatan BK Siswa*\n\n"
-        "Ketik *Nama Siswa* atau *NIS* untuk mengecek status pembinaan/kedisiplinan siswa.\n"
-        "Contoh: `Budi` atau `2026001`",
+        "🛡️ *Cek Catatan Bimbingan Konseling (BK)*\n\n"
+        "Silakan ketik langsung *Nama Siswa*, *NIS*, atau *Nama Kelas* di kolom chat (contoh: `Budi`, `X RPL`, atau `2026001`), "
+        "atau pilih langsung dari daftar kelas di bawah untuk mengecek catatan kedisiplinan dan pembinaan siswa:",
         parse_mode="Markdown",
-        reply_markup=get_main_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data="browse_classes:cases")],
+            [InlineKeyboardButton("🔍 Ketik Nama / NIS Manual", callback_data="prompt_search_cases")],
+            [InlineKeyboardButton("📞 Hubungi Guru BK", callback_data="contact_bk")],
+        ]),
     )
 
 
@@ -573,7 +467,7 @@ async def contact_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("📅 Cara Buat Janji Temu", callback_data="appointment_bk"),
-            InlineKeyboardButton("🔗 Cara Verifikasi Akun", callback_data="verify_guide"),
+            InlineKeyboardButton("🔍 Cari Data Siswa", callback_data="prompt_search"),
         ]
     ])
 
