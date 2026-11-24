@@ -3,6 +3,7 @@ export const API_ENDPOINTS = {
   PUBLIC: {
     CLASSES: '/api/v1/public/classes',
     CLASS_STUDENTS: (classId: number | string) => `/api/v1/public/classes/${classId}/students`,
+    VIOLATIONS: '/api/v1/public/violations',
     SUBMIT_COMPLAINT: '/api/v1/public/complaints',
   },
 
@@ -76,6 +77,8 @@ export const API_ENDPOINTS = {
     CREATE: '/api/v1/violations',
     UPDATE: (id: number | string) => `/api/v1/violations/${id}`,
     DELETE: (id: number | string) => `/api/v1/violations/${id}`,
+    ARCHIVE: (id: number | string) => `/api/v1/violations/${id}/archive`,
+    FORCE_DELETE: (id: number | string) => `/api/v1/violations/${id}/force`,
   },
 
   // Complaints
@@ -90,6 +93,8 @@ export const API_ENDPOINTS = {
     ATTACHMENT_DOWNLOAD: (id: number | string, attId: number | string) =>
       `/api/v1/complaints/${id}/attachments/${attId}`,
     LETTER: (id: number | string) => `/api/v1/complaints/${id}/letter`,
+    LETTER_DEFAULTS: '/api/v1/complaints/letter-defaults',
+    VIOLATIONS: (id: number | string) => `/api/v1/complaints/${id}/violations`,
     DELETE: (id: number | string) => `/api/v1/complaints/${id}`,
   },
 

@@ -1,0 +1,74 @@
+flowchart LR
+    %% ===== DEFINISI 3 AKTOR =====
+    GuruBK["👨‍🏫 Guru BK<br/>(Pengguna Portal Web)"]
+    Siswa["🎓 Siswa<br/>(Pengguna Form Barcode)"]
+    OrangTua["👨‍👩‍👧 Orang Tua / Wali<br/>(Pengguna Bot Telegram)"]
+
+    %% ===== BOUNDARY SISTEM =====
+    subgraph SistemBK["SISTEM INFORMASI BK & PRESENSI SISWA - SMK IPTEK SANGGABUANA"]
+        direction TB
+
+        subgraph ModulDataMaster["1. Modul Autentikasi & Data Master"]
+            UC_Login(["Login & Kelola Profil"])
+            UC_KelolaSiswa(["Kelola Data Siswa & Rombel"])
+            UC_KelolaKelas(["Kelola Data Kelas & Kalender"])
+            UC_SettingBot(["Konfigurasi Sekolah & Bot Telegram"])
+        end
+
+        subgraph ModulPresensi["2. Modul Presensi & Rekapitulasi"]
+            UC_InputPresensi(["Input Presensi Harian & Bulk Hadir"])
+            UC_RekapPresensi(["Lihat Rekapitulasi & Ekspor Laporan"])
+        end
+
+        subgraph ModulBK["3. Modul Bimbingan Konseling & Surat"]
+            UC_MasterPelanggaran(["Kelola Master Pelanggaran (Arsip & Hapus)"])
+            UC_CatatKasus(["Kelola Pengaduan & Kasus BK"])
+            UC_TindakLanjut(["Tindak Lanjut & Riwayat Konseling"])
+            UC_CetakSurat(["Terbitkan & Cetak Surat Panggilan Resmi"])
+            UC_TerbitKode(["Terbitkan Kode Verifikasi Telegram"])
+        end
+
+        subgraph ModulPublik["4. Modul Pengaduan Mandiri (Siswa)"]
+            UC_FormBarcode(["Aduan Pelanggaran via Scan Barcode/QR"])
+            UC_UnggahBukti(["Unggah Lampiran Bukti Foto/Dokumen"])
+        end
+
+        subgraph ModulTelegram["5. Modul Layanan Bot Telegram (Orang Tua)"]
+            UC_VerifikasiAkun(["Verifikasi Akun via Kode Akses"])
+            UC_CekPresensiBot(["Cek Presensi Harian & Riwayat"])
+            UC_CekKasusBot(["Cek Catatan Bimbingan & Konseling"])
+            UC_KontakSekolah(["Lihat Kontak Resmi Guru BK & Sekolah"])
+            UC_NotifikasiOtomatis(["Terima Notifikasi Otomatis (Absen & Kasus)"])
+        end
+    end
+
+    %% ===== RELASI 3 AKTOR KE USE CASE =====
+    %% 1. Guru BK (Aktor Utama Portal Web)
+    GuruBK --> UC_Login
+    GuruBK --> UC_KelolaSiswa
+    GuruBK --> UC_KelolaKelas
+    GuruBK --> UC_SettingBot
+    GuruBK --> UC_InputPresensi
+    GuruBK --> UC_RekapPresensi
+    GuruBK --> UC_MasterPelanggaran
+    GuruBK --> UC_CatatKasus
+    GuruBK --> UC_TindakLanjut
+    GuruBK --> UC_CetakSurat
+    GuruBK --> UC_TerbitKode
+
+    %% 2. Siswa (Aktor Form Barcode)
+    Siswa --> UC_FormBarcode
+
+    %% 3. Orang Tua (Aktor Bot Telegram)
+    OrangTua --> UC_VerifikasiAkun
+    OrangTua --> UC_CekPresensiBot
+    OrangTua --> UC_CekKasusBot
+    OrangTua --> UC_KontakSekolah
+
+    %% ===== RELASI INCLUDE, EXTEND, & TRIGGER =====
+    UC_FormBarcode -.->|"<<include>>"| UC_UnggahBukti
+    UC_CatatKasus -.->|"<<include>>"| UC_MasterPelanggaran
+    UC_CetakSurat -.->|"<<extend>>"| UC_TindakLanjut
+    UC_InputPresensi -.->|"<<trigger>>"| UC_NotifikasiOtomatis
+    UC_CatatKasus -.->|"<<trigger>>"| UC_NotifikasiOtomatis
+    UC_NotifikasiOtomatis -.->|"<<extend>>"| OrangTua

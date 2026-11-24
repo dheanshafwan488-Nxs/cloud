@@ -134,15 +134,24 @@ export function SettingsPage() {
   }
 
   const handleSendTestMessage = async () => {
-    if (!testChatId.trim()) {
+    const rawInput = testChatId.trim()
+    if (!rawInput) {
       showToast('Masukkan Telegram Chat ID Anda.', 'warning')
+      return
+    }
+
+    if (rawInput.startsWith('@')) {
+      showToast(
+        'Format belum sesuai. Telegram Bot mewajibkan Chat ID berupa deretan angka (contoh: 123456789), bukan username dengan @. Silakan ketik /id atau /start di bot untuk melihat Chat ID Anda.',
+        'warning'
+      )
       return
     }
 
     setIsSendingTestMessage(true)
     try {
       const res = await settingService.testSendMessage({
-        chat_id: testChatId.trim(),
+        chat_id: rawInput,
       })
       if (res.success) {
         showToast('Pesan notifikasi uji coba berhasil terkirim ke Telegram Anda!', 'success')
@@ -348,31 +357,68 @@ export function SettingsPage() {
             </div>
 
             {/* Send Test Notification to User */}
-            <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-xl space-y-2">
-              <label className="text-xs font-bold text-slate-800 block">
-                Uji Coba Kirim Notifikasi ke Akun Telegram Anda
-              </label>
-              <p className="text-[11px] text-slate-500">
-                Masukkan Telegram Chat ID / Akun Anda untuk memastikan pesan bot dapat diterima secara langsung.
-                (Dapatkan ID Anda melalui bot Telegram <em>@userinfobot</em>).
-              </p>
-              <div className="flex gap-2">
+            <div className="p-4 bg-slate-50/90 border border-slate-200 rounded-xl space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-800 block">
+                  Uji Coba Kirim Notifikasi ke Akun Telegram (Chat ID)
+                </label>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  Masukkan <strong className="text-slate-700">Chat ID Telegram Anda (berupa angka)</strong> untuk memastikan pesan bot dapat diterima secara langsung.
+                  Telegram <em>tidak mendukung</em> pengiriman pesan pribadi bot langsung ke username (<code className="text-rose-600">@username</code>).
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={testChatId}
                   onChange={(e) => setTestChatId(e.target.value)}
-                  placeholder="Contoh Chat ID: 123456789"
-                  className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                  placeholder="Contoh: 123456789 (bukan @username)"
+                  className={`flex-1 px-3 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 font-mono ${
+                    testChatId.trim().startsWith('@')
+                      ? 'border-rose-300 bg-rose-50/50 text-rose-800 focus:ring-rose-500'
+                      : 'border-slate-200 focus:ring-sky-500'
+                  }`}
                 />
                 <button
                   type="button"
                   onClick={handleSendTestMessage}
                   disabled={isSendingTestMessage || !testChatId.trim()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-colors disabled:opacity-50 cursor-pointer shrink-0"
                 >
                   <Send className={`w-3.5 h-3.5 ${isSendingTestMessage ? 'animate-bounce' : ''}`} />
                   {isSendingTestMessage ? 'Mengirim...' : 'Kirim Notifikasi Tes'}
                 </button>
+              </div>
+
+              {/* Dynamic warning if user types @username */}
+              {testChatId.trim().startsWith('@') && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-[11px] text-amber-800 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Format belum sesuai:</span> Telegram Bot tidak dapat mengirim pesan langsung ke username (<code className="font-mono bg-amber-100 px-1 rounded">{testChatId.trim()}</code>). Gunakan deretan angka <strong>Chat ID</strong> unik akun Anda.
+                  </div>
+                </div>
+              )}
+
+              {/* Helper box: How to get Chat ID */}
+              <div className="p-2.5 bg-sky-50/80 border border-sky-100 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-sky-900">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-sky-600 shrink-0" />
+                  <span>
+                    Cara mendapatkan Chat ID: Buka bot <strong>{telegramBotUsername || '@KedisiplinanSiswa_bot'}</strong> lalu kirim perintah <code className="bg-sky-100 px-1 rounded font-mono font-semibold">/id</code> atau <code className="bg-sky-100 px-1 rounded font-mono font-semibold">/start</code>.
+                  </span>
+                </div>
+                {telegramBotUsername && (
+                  <a
+                    href={`https://t.me/${telegramBotUsername.replace('@', '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-sky-700 hover:text-sky-900 hover:underline shrink-0 text-xs"
+                  >
+                    Buka Bot di Telegram &rarr;
+                  </a>
+                )}
               </div>
             </div>
 

@@ -27,8 +27,15 @@ export const violationService = {
     return response.data
   },
 
+  async archiveViolation(id: number | string, isActive?: boolean): Promise<ApiResponse<Violation>> {
+    const response = await apiClient.post<ApiResponse<Violation>>(API_ENDPOINTS.VIOLATIONS.ARCHIVE(id), {
+      is_active: isActive,
+    })
+    return response.data
+  },
+
   async deleteViolation(id: number | string): Promise<ApiResponse<null>> {
-    const response = await apiClient.delete<ApiResponse<null>>(API_ENDPOINTS.VIOLATIONS.DELETE(id))
+    const response = await apiClient.delete<ApiResponse<null>>(API_ENDPOINTS.VIOLATIONS.FORCE_DELETE(id))
     return response.data
   },
 }

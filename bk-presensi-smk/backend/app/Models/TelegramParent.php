@@ -10,7 +10,7 @@ class TelegramParent extends Model
     protected $table = 'telegram_parents';
 
     protected $fillable = [
-        'telegram_id', 'parent_name', 'is_verified',
+        'telegram_id', 'parent_name', 'username', 'is_verified',
         'verified_at', 'last_interaction_at',
     ];
 

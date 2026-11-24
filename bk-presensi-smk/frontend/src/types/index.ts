@@ -110,8 +110,12 @@ export interface Complaint {
   student?: Student
   class?: SchoolClass
   violations?: Violation[]
+  violation_items?: Array<{ id: number | null; name: string; points: number; is_manual?: boolean }>
+  total_points?: number
+  student_cumulative_points?: number
   assigned_to_user?: User
   student_name?: string
+  student_nis?: string
   class_name?: string
 }
 
@@ -287,6 +291,7 @@ export interface OfficialLetterData {
   letter_type: 'panggilan' | 'sp1' | 'sp2' | 'sp3'
   letter_title: string
   issued_date: string
+  letter_city?: string
   school: {
     name: string
     npsn: string

@@ -7,6 +7,18 @@ logger = logging.getLogger(__name__)
 
 class TelegramApiService:
     @staticmethod
+    async def register_interaction(telegram_id: int, parent_name: str | None = None, username: str | None = None) -> dict:
+        try:
+            return await api_client.post("/api/v1/telegram-bot/register-interaction", {
+                "telegram_id": telegram_id,
+                "parent_name": parent_name,
+                "username": username,
+            })
+        except Exception as e:
+            logger.warning("Gagal mencatat interaksi telegram user: %s", e)
+            return {"success": False, "message": str(e)}
+
+    @staticmethod
     async def verify_parent(telegram_id: int, parent_name: str, nis: str, code: str) -> dict:
         return await api_client.post("/api/v1/telegram-bot/verify", {
             "telegram_id": telegram_id,
@@ -24,6 +36,17 @@ class TelegramApiService:
     @staticmethod
     async def search_students(query: str) -> dict:
         return await api_client.get("/api/v1/telegram-bot/students/search", params={"q": query})
+
+    @staticmethod
+    async def get_classes() -> dict:
+        return await api_client.get("/api/v1/telegram-bot/classes")
+
+    @staticmethod
+    async def get_class_students(class_id: int, page: int = 1, per_page: int = 10) -> dict:
+        return await api_client.get(
+            f"/api/v1/telegram-bot/classes/{class_id}/students",
+            params={"page": page, "per_page": per_page},
+        )
 
     @staticmethod
     async def get_student_overview(student_id: int) -> dict:

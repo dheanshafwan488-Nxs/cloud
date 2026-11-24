@@ -11,6 +11,16 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     name = user.first_name if user else "Bapak/Ibu"
     main_keyboard = get_main_menu_keyboard()
 
+    if user:
+        try:
+            await TelegramApiService.register_interaction(
+                telegram_id=user.id,
+                parent_name=user.full_name or user.first_name,
+                username=user.username,
+            )
+        except Exception:
+            pass
+
     # Deep linking support: /start v_<NIS>_<CODE> or /start verify_<NIS>_<CODE>
     args = context.args or []
     if args and user:
@@ -64,19 +74,49 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                     )
                     return
 
+    chat_id_info = f"🆔 *Chat ID Telegram Anda:* `{user.id}` _(Klik/sentuh angka ID untuk menyalin)_\n\n" if user else ""
+
     message = (
         f"👋 *Selamat Datang, {name}!*\n"
         f"*Bot Layanan Orang Tua — SMK IPTEK SANGGABUANA*\n\n"
+        f"{chat_id_info}"
         "Bapak/Ibu dapat memantau kehadiran dan perkembangan kedisiplinan siswa secara cepat menggunakan *tombol menu di bawah ini*:\n\n"
-        "• *🔍 Cari Siswa* — Cari info lengkap siswa (ketik Nama atau NIS)\n"
+        "• *🔍 Cari Siswa* — Cari cepat berdasarkan Nama, NIS, atau Kelas\n"
+        "• *🏫 Pilih Kelas & Siswa* — Pilih kelas lalu klik nama siswa langsung\n"
         "• *📅 Absensi Siswa* — Cek kehadiran hari ini & rekap absen\n"
         "• *📋 Riwayat Absen* — Lihat 10 catatan kehadiran terakhir\n"
         "• *🛡️ Catatan BK* — Cek status pembinaan Bimbingan Konseling\n"
         "• *📞 Hubungi Guru BK* — Kontak resmi sekolah & jadwal konseling\n\n"
-        "💡 _Atau langsung ketik Nama / NIS siswa di kolom chat untuk mencari dengan cepat._"
+        "💡 _Atau langsung ketik Nama / NIS / Nama Kelas siswa di kolom chat untuk mencari dengan cepat._"
     )
     await update.message.reply_text(
         message,
         parse_mode="Markdown",
         reply_markup=main_keyboard,
     )
+
+
+async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if not user:
+        return
+
+    try:
+        await TelegramApiService.register_interaction(
+            telegram_id=user.id,
+            parent_name=user.full_name or user.first_name,
+            username=user.username,
+        )
+    except Exception:
+        pass
+
+    username_str = f"@{user.username}" if user.username else "_Belum disetel_"
+    msg = (
+        "🆔 *Informasi Akun Telegram Anda*\n\n"
+        f"• *Chat ID:* `{user.id}` _(Klik/sentuh angka ID untuk menyalin)_\n"
+        f"• *Nama:* {user.full_name or user.first_name}\n"
+        f"• *Username:* {username_str}\n\n"
+        "💡 *Panduan Uji Coba Notifikasi:*\n"
+        "Salin deretan angka *Chat ID* di atas, lalu masukkan ke kolom *'Uji Coba Kirim Notifikasi'* di menu *Pengaturan Sekolah & Bot* pada aplikasi web."
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown")

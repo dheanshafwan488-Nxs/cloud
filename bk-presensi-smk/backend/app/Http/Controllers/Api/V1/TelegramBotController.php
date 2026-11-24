@@ -7,10 +7,13 @@ use App\Models\Attendance;
 use App\Models\ClassAssignment;
 use App\Models\Complaint;
 use App\Models\ParentVerificationCode;
+use App\Models\SchoolClass;
 use App\Models\Setting;
 use App\Models\Student;
 use App\Models\TelegramParent;
+use App\Models\Violation;
 use App\Services\AuditService;
+use App\Services\ComplaintService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,6 +21,42 @@ use Illuminate\Support\Facades\Hash;
 
 class TelegramBotController extends Controller
 {
+    /**
+     * Register or update telegram user interaction (start/message)
+     */
+    public function registerInteraction(Request $request): JsonResponse
+    {
+        $request->validate([
+            'telegram_id' => ['required', 'integer'],
+            'parent_name' => ['nullable', 'string', 'max:150'],
+            'username'    => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $username = $request->input('username');
+        if ($username) {
+            $username = ltrim(trim($username), '@');
+        }
+
+        $parent = TelegramParent::updateOrCreate(
+            ['telegram_id' => $request->telegram_id],
+            array_filter([
+                'parent_name'         => $request->input('parent_name') ?: 'Pengguna Telegram',
+                'username'            => $username ?: null,
+                'last_interaction_at' => now(),
+            ], fn($val) => $val !== null)
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Interaksi pengguna berhasil dicatat.',
+            'data'    => [
+                'telegram_id' => $parent->telegram_id,
+                'parent_name' => $parent->parent_name,
+                'username'    => $parent->username,
+            ],
+        ]);
+    }
+
     /**
      * Verify parent via code — called by bot
      */
@@ -117,34 +156,114 @@ class TelegramBotController extends Controller
     }
 
     /**
-     * Search active students by name or NIS (for parent inquiry button)
+     * Search active students by name, NIS, or class name (supports multi-word keywords)
      */
     public function searchStudents(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
         if (mb_strlen($q) < 2) {
-            return $this->fail('Masukkan minimal 2 karakter nama atau NIS siswa.', 'QUERY_TOO_SHORT', 422);
+            return $this->fail('Masukkan minimal 2 karakter nama, kelas, atau NIS siswa.', 'QUERY_TOO_SHORT', 422);
         }
 
-        $students = Student::with('class')
+        $tokens = array_values(array_filter(preg_split('/\s+/', $q) ?: []));
+
+        $baseQuery = Student::with('class')
             ->where('enrollment_status', 'aktif')
-            ->where(function ($query) use ($q) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('nis', 'like', "%{$q}%");
-            })
+            ->where(function ($outer) use ($q, $tokens) {
+                $outer->where('name', 'like', "%{$q}%")
+                    ->orWhere('nis', 'like', "%{$q}%")
+                    ->orWhereHas('class', fn($cq) => $cq->where('name', 'like', "%{$q}%"));
+
+                if (count($tokens) > 1) {
+                    $outer->orWhere(function ($allTokens) use ($tokens) {
+                        foreach ($tokens as $tok) {
+                            $allTokens->where(function ($sub) use ($tok) {
+                                $sub->where('name', 'like', "%{$tok}%")
+                                    ->orWhere('nis', 'like', "%{$tok}%")
+                                    ->orWhereHas('class', fn($cq) => $cq->where('name', 'like', "%{$tok}%"));
+                            });
+                        }
+                    });
+                }
+            });
+
+        $total = (clone $baseQuery)->count();
+        $students = $baseQuery
             ->orderBy('name')
-            ->limit(10)
+            ->limit(15)
             ->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Hasil pencarian siswa.',
+            'total'   => $total,
             'data'    => $students->map(fn($s) => [
                 'id'         => $s->id,
                 'name'       => $s->name,
                 'nis'        => $s->nis,
                 'class_name' => $s->class?->name ?? '-',
             ]),
+        ]);
+    }
+
+    /**
+     * List active classes for Telegram inline browsing
+     */
+    public function listClasses(): JsonResponse
+    {
+        $classes = SchoolClass::where('is_active', true)
+            ->withCount(['students' => fn($q) => $q->where('enrollment_status', 'aktif')])
+            ->orderBy('grade_level')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $classes->map(fn($c) => [
+                'id'             => $c->id,
+                'name'           => $c->name,
+                'grade_level'    => $c->grade_level,
+                'students_count' => $c->students_count,
+            ]),
+        ]);
+    }
+
+    /**
+     * Paginated list of active students in a class for Telegram inline browsing
+     */
+    public function classStudents(Request $request, int $classId): JsonResponse
+    {
+        $class = SchoolClass::where('id', $classId)->where('is_active', true)->first();
+        if (!$class) {
+            return $this->fail('Kelas tidak ditemukan.', 'CLASS_NOT_FOUND', 404);
+        }
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(20, max(5, (int) $request->query('per_page', 10)));
+
+        $paginator = Student::where('class_id', $class->id)
+            ->where('enrollment_status', 'aktif')
+            ->orderBy('name')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'class' => [
+                    'id'   => $class->id,
+                    'name' => $class->name,
+                ],
+                'students' => collect($paginator->items())->map(fn($s) => [
+                    'id'   => $s->id,
+                    'name' => $s->name,
+                    'nis'  => $s->nis,
+                ])->values(),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page'    => $paginator->lastPage(),
+                    'total'        => $paginator->total(),
+                ],
+            ],
         ]);
     }
 
@@ -190,26 +309,31 @@ class TelegramBotController extends Controller
                 'notes'  => $a->notes,
             ]);
 
-        $complaints = Complaint::with('violations')
+        $complaintService = app(ComplaintService::class);
+        $masterViolations = Violation::all();
+
+        $allStudentComplaints = Complaint::with('violations')
             ->where('student_id', $student->id)
             ->orderByDesc('incident_at')
-            ->limit(5)
             ->get();
 
-        $totalPoints = $complaints->sum(function ($c) {
-            $pts = $c->violations->sum('pivot.points_snapshot');
-            if ($pts === 0 && !empty($c->manual_violation)) {
-                return 10;
-            }
-            return $pts;
-        });
+        $totalPoints = $allStudentComplaints->sum(
+            fn($c) => $complaintService->calculateComplaintPoints($c, $masterViolations)
+        );
 
-        $casesList = $complaints->map(fn($c) => [
-            'complaint_code' => $c->complaint_code,
-            'status'         => $c->status,
-            'incident_at'    => $c->incident_at instanceof Carbon ? $c->incident_at->toDateString() : (string) $c->incident_at,
-            'violation'      => $c->manual_violation ?: ($c->violations->pluck('name')->join(', ') ?: 'Catatan Pembinaan BK'),
-        ]);
+        $complaints = $allStudentComplaints->take(5);
+
+        $casesList = $complaints->map(function ($c) use ($complaintService, $masterViolations) {
+            $items = $complaintService->getComplaintViolationItems($c, $masterViolations);
+            $pts = (int) collect($items)->sum('points');
+            $names = collect($items)->pluck('name')->join(', ');
+            return [
+                'complaint_code' => $c->complaint_code,
+                'status'         => $c->status,
+                'incident_at'    => $c->incident_at instanceof Carbon ? $c->incident_at->toDateString() : (string) $c->incident_at,
+                'violation'      => ($names ?: 'Catatan Pembinaan BK') . ($pts > 0 ? " (+{$pts} Poin)" : ''),
+            ];
+        });
 
         return response()->json([
             'success' => true,
@@ -231,8 +355,8 @@ class TelegramBotController extends Controller
                 'attendance_summary' => $summary,
                 'recent_attendances' => $recentAttendances,
                 'bk_summary' => [
-                    'total_cases'  => $complaints->count(),
-                    'open_cases'   => $complaints->whereIn('status', ['Pending', 'Diproses'])->count(),
+                    'total_cases'  => $allStudentComplaints->count(),
+                    'open_cases'   => $allStudentComplaints->whereIn('status', ['Pending', 'Diproses'])->count(),
                     'total_points' => $totalPoints,
                     'cases'        => $casesList,
                 ],

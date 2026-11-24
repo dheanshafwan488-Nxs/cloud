@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 from services.api_service import TelegramApiService
 from handlers.keyboards import (
     BTN_SEARCH_STUDENT,
+    BTN_BROWSE_CLASSES,
     BTN_ATTENDANCE_TODAY,
     BTN_ATTENDANCE_HISTORY,
     BTN_BK_NOTES,
@@ -20,6 +21,14 @@ STATUS_ICONS = {
 }
 
 
+def esc_md(val: object) -> str:
+    """Escape characters that break legacy Telegram Markdown."""
+    s = str(val if val is not None else "-")
+    for ch in ("\\", "_", "*", "`", "["):
+        s = s.replace(ch, f"\\{ch}")
+    return s
+
+
 def build_student_action_buttons(student_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [
@@ -29,6 +38,9 @@ def build_student_action_buttons(student_id: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton("🛡️ Catatan BK", callback_data=f"student_cases:{student_id}"),
             InlineKeyboardButton("🔍 Cari Siswa Lain", callback_data="prompt_search"),
+        ],
+        [
+            InlineKeyboardButton("🏫 Pilih dari Daftar Kelas", callback_data="browse_classes:overview"),
         ],
     ])
 
@@ -171,6 +183,113 @@ async def send_student_detail(message, student_id: int, mode: str = "overview") 
     )
 
 
+async def send_class_list(message, mode: str = "overview", edit: bool = False) -> None:
+    resp = await TelegramApiService.get_classes()
+    if not resp.get("success"):
+        text = f"⚠️ {resp.get('message', 'Gagal memuat daftar kelas.')}"
+        if edit:
+            await message.edit_text(text)
+        else:
+            await message.reply_text(text, reply_markup=get_main_menu_keyboard())
+        return
+
+    classes = resp.get("data", [])
+    if not classes:
+        text = "ℹ️ Belum ada kelas aktif yang terdaftar di sistem."
+        if edit:
+            await message.edit_text(text)
+        else:
+            await message.reply_text(text, reply_markup=get_main_menu_keyboard())
+        return
+
+    buttons = []
+    row = []
+    for c in classes:
+        label = f"🏫 {c['name']} ({c.get('students_count', 0)})"
+        row.append(InlineKeyboardButton(label, callback_data=f"class_students:{c['id']}:1:{mode}"))
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    buttons.append([InlineKeyboardButton("🔍 Ketik Nama / NIS Manual", callback_data="prompt_search")])
+
+    text = (
+        "🏫 *Daftar Kelas Aktif*\n\n"
+        "Silakan pilih kelas untuk melihat daftar nama siswa, "
+        "atau langsung ketik *Nama / NIS siswa* di kolom chat:"
+    )
+    markup = InlineKeyboardMarkup(buttons)
+    if edit:
+        await message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+    else:
+        await message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
+
+
+async def send_class_students(message, class_id: int, page: int = 1, mode: str = "overview", edit: bool = False) -> None:
+    resp = await TelegramApiService.get_class_students(class_id, page=page, per_page=10)
+    if not resp.get("success") or not resp.get("data"):
+        text = f"⚠️ {resp.get('message', 'Gagal memuat daftar siswa.')}"
+        if edit:
+            await message.edit_text(text)
+        else:
+            await message.reply_text(text, reply_markup=get_main_menu_keyboard())
+        return
+
+    payload = resp["data"]
+    cls = payload.get("class", {})
+    students = payload.get("students", [])
+    meta = payload.get("meta", {})
+    current_page = meta.get("current_page", 1)
+    last_page = meta.get("last_page", 1)
+    total = meta.get("total", len(students))
+
+    callback_prefix = {
+        "history": "student_history",
+        "cases": "student_cases",
+    }.get(mode, "student_overview")
+
+    buttons = [
+        [
+            InlineKeyboardButton(
+                f"👤 {s['name']} ({s['nis']})",
+                callback_data=f"{callback_prefix}:{s['id']}",
+            )
+        ]
+        for s in students
+    ]
+
+    nav_row = []
+    if current_page > 1:
+        nav_row.append(
+            InlineKeyboardButton("⬅️ Sebelumnya", callback_data=f"class_students:{class_id}:{current_page - 1}:{mode}")
+        )
+    if current_page < last_page:
+        nav_row.append(
+            InlineKeyboardButton("Selanjutnya ➡️", callback_data=f"class_students:{class_id}:{current_page + 1}:{mode}")
+        )
+    if nav_row:
+        buttons.append(nav_row)
+
+    buttons.append([
+        InlineKeyboardButton("🔙 Pilih Kelas Lain", callback_data=f"browse_classes:{mode}"),
+        InlineKeyboardButton("🔍 Cari Nama", callback_data="prompt_search"),
+    ])
+
+    cls_name = esc_md(cls.get("name", "Kelas"))
+    text = (
+        f"🏫 *Siswa Kelas {cls_name}*\n"
+        f"Total: *{total} siswa* (Halaman {current_page}/{last_page})\n\n"
+        "Silakan pilih nama siswa di bawah ini:"
+    )
+    markup = InlineKeyboardMarkup(buttons)
+    if edit:
+        await message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+    else:
+        await message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
+
+
 async def run_student_search(update: Update, context: ContextTypes.DEFAULT_TYPE, query_text: str, mode: str = "overview") -> None:
     message = update.effective_message
     if not message:
@@ -179,9 +298,11 @@ async def run_student_search(update: Update, context: ContextTypes.DEFAULT_TYPE,
     q = query_text.strip()
     if len(q) < 2:
         await message.reply_text(
-            "⚠️ Ketik minimal *2 huruf nama siswa* atau *NIS* (contoh: `Budi` atau `2026001`).",
+            "⚠️ Ketik minimal *2 huruf nama siswa*, *nama kelas*, atau *NIS* (contoh: `Budi`, `X RPL`, atau `2026001`).",
             parse_mode="Markdown",
-            reply_markup=get_main_menu_keyboard(),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data=f"browse_classes:{mode}")]
+            ]),
         )
         return
 
@@ -194,12 +315,16 @@ async def run_student_search(update: Update, context: ContextTypes.DEFAULT_TYPE,
         return
 
     students = resp.get("data", [])
+    total = resp.get("total", len(students))
     if not students:
         await message.reply_text(
-            f"❌ Tidak ditemukan siswa aktif dengan kata kunci *{q}*.\n\n"
-            "Pastikan ejaan nama atau NIS sudah benar, lalu coba ketik ulang.",
+            f"❌ Tidak ditemukan siswa aktif dengan kata kunci *{esc_md(q)}*.\n\n"
+            "Coba ketik sebagian nama depan/belakang, NIS, nama kelas (misal: `X RPL`), atau pilih langsung dari daftar kelas di bawah:",
             parse_mode="Markdown",
-            reply_markup=get_main_menu_keyboard(),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data=f"browse_classes:{mode}")],
+                [InlineKeyboardButton("🔍 Cari Kata Kunci Lain", callback_data="prompt_search")],
+            ]),
         )
         return
 
@@ -224,11 +349,18 @@ async def run_student_search(update: Update, context: ContextTypes.DEFAULT_TYPE,
         ]
         for s in students
     ]
-    buttons.append([InlineKeyboardButton("🔍 Cari Kata Kunci Lain", callback_data="prompt_search")])
+    buttons.append([
+        InlineKeyboardButton("🏫 Pilih per Kelas", callback_data=f"browse_classes:{mode}"),
+        InlineKeyboardButton("🔍 Cari Nama Lain", callback_data="prompt_search"),
+    ])
+
+    extra_note = ""
+    if total > len(students):
+        extra_note = f"\n_(Menampilkan {len(students)} dari {total} siswa — ketik nama lebih lengkap/kelas untuk mempersempit hasil)_"
 
     context.user_data.pop("awaiting_student_search", None)
     await message.reply_text(
-        f"🔍 *Ditemukan {len(students)} siswa untuk \"{q}\":*\nSilakan pilih nama siswa di bawah ini:",
+        f"🔍 *Ditemukan {total} siswa untuk \"{esc_md(q)}\":*{extra_note}\nSilakan pilih nama siswa di bawah ini:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(buttons),
     )
@@ -247,11 +379,22 @@ async def cari_command_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["awaiting_student_search"] = "overview"
     await message.reply_text(
         "🔍 *Cari Data Siswa*\n\n"
-        "Silakan ketik *Nama Siswa* atau *NIS* yang ingin Bapak/Ibu tanyakan.\n"
-        "Contoh: `Budi` atau `2026001`",
+        "Ketik *Nama Siswa*, *NIS*, atau *Nama Kelas* langsung di chat.\n"
+        "Contoh: `Budi`, `Budi RPL`, `X RPL 1`, atau `2026001`\n\n"
+        "Atau klik tombol di bawah untuk memilih dari daftar kelas:",
         parse_mode="Markdown",
-        reply_markup=get_main_menu_keyboard(),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🏫 Pilih Berdasarkan Kelas", callback_data="browse_classes:overview")]
+        ]),
     )
+
+
+async def kelas_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
+    if not message:
+        return
+    mode = context.user_data.get("awaiting_student_search", "overview")
+    await send_class_list(message, mode=mode, edit=False)
 
 
 async def absensi_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -455,6 +598,8 @@ async def text_menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     if text == BTN_SEARCH_STUDENT:
         await cari_command_handler(update, context)
+    elif text == BTN_BROWSE_CLASSES:
+        await kelas_command_handler(update, context)
     elif text == BTN_ATTENDANCE_TODAY:
         await absensi_menu_handler(update, context)
     elif text == BTN_ATTENDANCE_HISTORY:

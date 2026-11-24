@@ -3,7 +3,7 @@ from __future__ import annotations
 from telegram import Update
 from telegram.ext import ContextTypes
 from services.api_service import TelegramApiService
-from handlers.student_lookup import send_student_detail
+from handlers.student_lookup import send_student_detail, send_class_list, send_class_students
 from handlers.keyboards import get_main_menu_keyboard
 
 
@@ -26,6 +26,17 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     elif data.startswith("student_cases:"):
         student_id = int(data.split(":", 1)[1])
         await send_student_detail(query.message, student_id, mode="cases")
+
+    elif data.startswith("browse_classes:"):
+        mode = data.split(":", 1)[1] or "overview"
+        await send_class_list(query.message, mode=mode, edit=True)
+
+    elif data.startswith("class_students:"):
+        parts = data.split(":")
+        class_id = int(parts[1])
+        page = int(parts[2]) if len(parts) > 2 else 1
+        mode = parts[3] if len(parts) > 3 else "overview"
+        await send_class_students(query.message, class_id, page=page, mode=mode, edit=True)
 
     elif data == "prompt_search":
         context.user_data["awaiting_student_search"] = "overview"

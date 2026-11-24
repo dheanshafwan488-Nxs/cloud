@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1/public')->group(function () {
     Route::get('classes', [PublicComplaintController::class, 'getClasses']);
     Route::get('classes/{class}/students', [PublicComplaintController::class, 'getStudentsByClass']);
+    Route::get('violations', [PublicComplaintController::class, 'getViolations']);
     Route::post('complaints', [PublicComplaintController::class, 'store'])
         ->middleware('throttle:30,1');
 });
@@ -75,10 +76,14 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('attendances', AttendanceController::class)->only(['index', 'store', 'update']);
 
     // Violations
+    Route::post('violations/{violation}/archive', [ViolationController::class, 'archive']);
+    Route::delete('violations/{violation}/force', [ViolationController::class, 'forceDestroy']);
     Route::apiResource('violations', ViolationController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Complaints
+    Route::put('complaints/letter-defaults', [ComplaintController::class, 'saveLetterDefaults']);
     Route::get('complaints/{complaint}/letter', [ComplaintController::class, 'generateLetter']);
+    Route::put('complaints/{complaint}/violations', [ComplaintController::class, 'updateViolations']);
     Route::apiResource('complaints', ComplaintController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::post('complaints/{complaint}/status', [ComplaintController::class, 'changeStatus']);
     Route::post('complaints/{complaint}/followups', [ComplaintController::class, 'addFollowup']);
@@ -107,9 +112,12 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
 
 // ─── Bot internal endpoints (service token) ──────────────────────────────────
 $botRoutes = function () {
+    Route::post('register-interaction', [TelegramBotController::class, 'registerInteraction']);
     Route::post('verify', [TelegramBotController::class, 'verify']);
     Route::post('unverify', [TelegramBotController::class, 'unverify']);
     Route::get('students/search', [TelegramBotController::class, 'searchStudents']);
+    Route::get('classes', [TelegramBotController::class, 'listClasses']);
+    Route::get('classes/{classId}/students', [TelegramBotController::class, 'classStudents']);
     Route::get('students/{studentId}/overview', [TelegramBotController::class, 'studentOverview']);
     Route::get('parent/{telegramId}/profile', [TelegramBotController::class, 'parentProfile']);
     Route::get('parent/{telegramId}/attendance/today', [TelegramBotController::class, 'parentTodayAttendance']);

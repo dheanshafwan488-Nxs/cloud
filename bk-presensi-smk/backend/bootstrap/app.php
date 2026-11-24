@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'bot.token' => BotServiceTokenMiddleware::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
+
         $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {

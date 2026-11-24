@@ -4,9 +4,18 @@ import { ApiError } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retryCsrf?: boolean
+}
+
+let csrfRefreshPromise: Promise<unknown> | null = null
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  withXSRFToken: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -40,9 +49,35 @@ apiClient.interceptors.response.use(
     }
     return response
   },
-  (error: AxiosError<{ message?: string; errors?: Record<string, string[]>; error_code?: string; request_id?: string }>) => {
-    const headerReqId = error.response?.headers?.['x-request-id'] || error.config?.headers?.['X-Request-ID'] || 'unknown_req'
+  async (error: AxiosError<{ message?: string; errors?: Record<string, string[]>; error_code?: string; request_id?: string }>) => {
+    const originalConfig = error.config as RetryableRequestConfig | undefined
     const status = error.response?.status
+
+    // Automatically refresh CSRF cookie and retry once on 419 (CSRF token mismatch)
+    if (
+      status === 419 &&
+      originalConfig &&
+      !originalConfig._retryCsrf &&
+      !originalConfig.url?.includes('/auth/csrf')
+    ) {
+      originalConfig._retryCsrf = true
+      try {
+        if (!csrfRefreshPromise) {
+          csrfRefreshPromise = apiClient.get('/api/v1/auth/csrf').finally(() => {
+            csrfRefreshPromise = null
+          })
+        }
+        await csrfRefreshPromise
+        if (originalConfig.headers) {
+          originalConfig.headers.delete('X-XSRF-TOKEN')
+        }
+        return apiClient(originalConfig)
+      } catch {
+        // Fall through to normalized error if CSRF refresh itself fails
+      }
+    }
+
+    const headerReqId = error.response?.headers?.['x-request-id'] || error.config?.headers?.['X-Request-ID'] || 'unknown_req'
 
     const normalizedError: ApiError = {
       success: false,

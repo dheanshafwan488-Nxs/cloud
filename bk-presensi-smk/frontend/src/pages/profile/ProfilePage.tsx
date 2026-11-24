@@ -25,17 +25,19 @@ export function ProfilePage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
       setName(user.name || '')
       setEmail(user.email || '')
     }
-  }, [user])
+  }, [user?.id, user?.name, user?.email])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
+    setSuccessMsg(null)
 
     if (!name.trim()) {
       setErrorMsg('Nama lengkap tidak boleh kosong.')
@@ -83,6 +85,7 @@ export function ProfilePage() {
       setCurrentPassword('')
       setPassword('')
       setPasswordConfirmation('')
+      setSuccessMsg('Perubahan profil berhasil disimpan dan diterapkan di seluruh sistem.')
     }
   }
 
@@ -112,6 +115,13 @@ export function ProfilePage() {
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
           <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 shrink-0 text-emerald-600" />
+          <span>{successMsg}</span>
         </div>
       )}
 
@@ -208,7 +218,7 @@ export function ProfilePage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-navy-600"
                   placeholder="Masukkan kata sandi saat ini"
-                  autoComplete="current-password"
+                  autoComplete="off"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>

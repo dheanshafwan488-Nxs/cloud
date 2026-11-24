@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Complaint;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\Violation;
 use App\Services\AuditService;
 use App\Services\ComplaintService;
 use Illuminate\Http\JsonResponse;
@@ -54,6 +55,24 @@ class PublicComplaintController extends Controller
     }
 
     /**
+     * Get list of active master violations (with points) for student complaint form.
+     */
+    public function getViolations(): JsonResponse
+    {
+        $violations = Violation::where('is_active', true)
+            ->orderByDesc('points')
+            ->orderBy('name')
+            ->get(['id', 'name', 'description', 'points']);
+
+        return response()->json([
+            'success'    => true,
+            'message'    => 'Daftar jenis pelanggaran aktif.',
+            'request_id' => app()->bound('request.id') ? app('request.id') : null,
+            'data'       => $violations,
+        ]);
+    }
+
+    /**
      * Submit a public complaint from the student barcode form.
      */
     public function store(Request $request): JsonResponse
@@ -63,7 +82,9 @@ class PublicComplaintController extends Controller
             'reporter_student_id' => ['required', 'integer', 'exists:students,id'],
             'class_id'            => ['required', 'integer', 'exists:classes,id'],
             'student_id'          => ['required', 'integer', 'exists:students,id'],
-            'manual_violation'    => ['required', 'string', 'min:3', 'max:255'],
+            'violation_ids'       => ['nullable', 'array'],
+            'violation_ids.*'     => ['integer', 'exists:violations,id'],
+            'manual_violation'    => ['nullable', 'string', 'max:500'],
             'chronology'          => ['required', 'string', 'min:10', 'max:5000'],
             'incident_at'         => ['required', 'date'],
             'attachment'          => ['required', 'file', 'mimes:jpeg,png,jpg,webp,pdf', 'max:5120'],
@@ -72,7 +93,6 @@ class PublicComplaintController extends Controller
             'reporter_student_id.required' => 'Pilih nama Anda sebagai pelapor untuk mencegah laporan palsu/fitnah.',
             'class_id.required'            => 'Pilih kelas siswa yang ingin dilaporkan.',
             'student_id.required'          => 'Pilih nama siswa yang ingin dilaporkan.',
-            'manual_violation.required'    => 'Tuliskan jenis pelanggaran yang terjadi (misal: merokok, bolos, membawa handphone, dll).',
             'chronology.required'          => 'Jelaskan kronologi atau keterangan kejadian.',
             'chronology.min'               => 'Keterangan kejadian minimal 10 karakter.',
             'incident_at.required'         => 'Tentukan tanggal atau waktu kejadian.',
@@ -81,6 +101,18 @@ class PublicComplaintController extends Controller
             'attachment.mimes'             => 'Format file bukti harus berupa foto (JPG, PNG, WEBP) atau PDF.',
             'attachment.max'               => 'Ukuran file bukti maksimal 5 MB.',
         ]);
+
+        $violationIds = array_values(array_unique(array_map('intval', $data['violation_ids'] ?? [])));
+        $manualViolation = trim((string) ($data['manual_violation'] ?? ''));
+
+        if (empty($violationIds) && mb_strlen($manualViolation) < 3) {
+            return response()->json([
+                'success'    => false,
+                'message'    => 'Pilih minimal satu jenis pelanggaran atau tuliskan jenis pelanggaran lainnya (minimal 3 karakter).',
+                'error_code' => 'VIOLATION_REQUIRED',
+                'request_id' => app()->bound('request.id') ? app('request.id') : null,
+            ], 422);
+        }
 
         $reporterStudent = Student::with('class')
             ->where('id', $data['reporter_student_id'])
@@ -125,7 +157,8 @@ class PublicComplaintController extends Controller
         $complaintData = [
             'student_id'       => $student->id,
             'class_id'         => $student->class_id,
-            'manual_violation' => $data['manual_violation'],
+            'violation_ids'    => $violationIds,
+            'manual_violation' => $manualViolation !== '' ? $manualViolation : null,
             'reporter_name'    => $reporterName,
             'chronology'       => $data['chronology'],
             'incident_at'      => $data['incident_at'],
@@ -138,11 +171,17 @@ class PublicComplaintController extends Controller
             $this->complaintService->storeAttachment($complaint, $request->file('attachment'));
         }
 
+        $violationItems = $this->complaintService->getComplaintViolationItems($complaint);
+        $totalPoints = $this->complaintService->calculateComplaintPoints($complaint);
+        $violationSummary = collect($violationItems)->pluck('name')->join(', ');
+
         AuditService::log('public_complaint_submitted', 'complaints', $complaint->id, [
             'code'             => $complaint->complaint_code,
             'student'          => $student->name,
             'class'            => $student->class?->name,
-            'manual_violation' => $data['manual_violation'],
+            'violation_ids'    => $violationIds,
+            'manual_violation' => $manualViolation,
+            'total_points'     => $totalPoints,
             'reporter'         => $reporterName,
         ]);
 
@@ -155,7 +194,9 @@ class PublicComplaintController extends Controller
                 'reporter_name'    => $reporterName,
                 'student_name'     => $student->name,
                 'class_name'       => $student->class?->name,
-                'manual_violation' => $complaint->manual_violation,
+                'manual_violation' => $violationSummary ?: $complaint->manual_violation,
+                'total_points'     => $totalPoints,
+                'violations'       => $violationItems,
                 'incident_at'      => $complaint->incident_at?->toDateString(),
                 'status'           => $complaint->status,
                 'created_at'       => $complaint->created_at?->toIso8601String(),

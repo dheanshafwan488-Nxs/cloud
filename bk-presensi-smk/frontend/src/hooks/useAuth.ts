@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (payload: UpdateProfilePayload): Promise<boolean> => {
     try {
-      setIsLoading(true)
       const resp = await authService.updateProfile(payload)
       if (resp.success && resp.data) {
         setUser(resp.data)
@@ -93,8 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       showToast(msg, 'error', errorObj.request_id)
       return false
-    } finally {
-      setIsLoading(false)
     }
   }
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, ShieldAlert, Edit2, Trash2, X, AlertTriangle } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { Plus, ShieldAlert, Edit2, Trash2, X, Archive, RotateCcw, Search } from 'lucide-react'
 import { violationService, CreateViolationPayload } from '../../services/violationService'
 import { Violation } from '../../types'
 import { PageHeader } from '../../components/common/PageHeader'
@@ -18,6 +18,10 @@ export function ViolationListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<{ message: string; requestId?: string | null } | null>(null)
 
+  // Filter & Search State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all')
+
   // Form Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingViolation, setEditingViolation] = useState<Violation | null>(null)
@@ -27,7 +31,11 @@ export function ViolationListPage() {
   const [isActive, setIsActive] = useState<boolean>(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Delete / Archive Dialog
+  // Archive / Restore Dialog
+  const [archivingViolation, setArchivingViolation] = useState<Violation | null>(null)
+  const [isArchiving, setIsArchiving] = useState(false)
+
+  // Delete Dialog (Permanent)
   const [deletingViolation, setDeletingViolation] = useState<Violation | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -102,20 +110,62 @@ export function ViolationListPage() {
     }
   }
 
+  // Handle Archive / Restore
+  const handleArchive = async () => {
+    if (!archivingViolation) return
+    setIsArchiving(true)
+    const targetStatus = !archivingViolation.is_active
+    try {
+      await violationService.archiveViolation(archivingViolation.id, targetStatus)
+      showToast(
+        targetStatus
+          ? `Pelanggaran "${archivingViolation.name}" berhasil diaktifkan kembali.`
+          : `Pelanggaran "${archivingViolation.name}" berhasil diarsipkan.`,
+        'success'
+      )
+      setArchivingViolation(null)
+      fetchViolations()
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengubah status pelanggaran.', 'error', err.request_id)
+    } finally {
+      setIsArchiving(false)
+    }
+  }
+
+  // Handle Permanent Delete
   const handleDelete = async () => {
     if (!deletingViolation) return
     setIsDeleting(true)
     try {
       await violationService.deleteViolation(deletingViolation.id)
-      showToast(`Pelanggaran "${deletingViolation.name}" berhasil dinonaktifkan/diarsipkan.`, 'success')
+      showToast(`Pelanggaran "${deletingViolation.name}" berhasil dihapus secara permanen.`, 'success')
       setDeletingViolation(null)
       fetchViolations()
     } catch (err: any) {
-      showToast(err.message || 'Gagal menghapus pelanggaran.', 'error', err.request_id)
+      showToast(err.message || 'Gagal menghapus pelanggaran secara permanen.', 'error', err.request_id)
     } finally {
       setIsDeleting(false)
     }
   }
+
+  // Filtered list
+  const filteredViolations = useMemo(() => {
+    return violations.filter((v) => {
+      if (statusFilter === 'active' && !v.is_active) return false
+      if (statusFilter === 'archived' && v.is_active) return false
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        const matchName = v.name.toLowerCase().includes(q)
+        const matchDesc = v.description?.toLowerCase().includes(q)
+        return matchName || matchDesc
+      }
+      return true
+    })
+  }, [violations, statusFilter, searchQuery])
+
+  const totalCount = violations.length
+  const activeCount = useMemo(() => violations.filter((v) => v.is_active).length, [violations])
+  const archivedCount = useMemo(() => violations.filter((v) => !v.is_active).length, [violations])
 
   const columns: Column<Violation>[] = [
     {
@@ -152,6 +202,7 @@ export function ViolationListPage() {
         <div className="flex items-center justify-end gap-1.5">
           {canManage && (
             <>
+              {/* Tombol Edit */}
               <button
                 type="button"
                 onClick={() => handleOpenModal(row)}
@@ -160,13 +211,36 @@ export function ViolationListPage() {
               >
                 <Edit2 className="w-4 h-4" />
               </button>
+
+              {/* Tombol Arsip / Aktifkan Kembali */}
+              {row.is_active ? (
+                <button
+                  type="button"
+                  onClick={() => setArchivingViolation(row)}
+                  className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                  title="Arsipkan (Nonaktifkan)"
+                >
+                  <Archive className="w-4 h-4 text-amber-600" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setArchivingViolation(row)}
+                  className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                  title="Aktifkan Kembali"
+                >
+                  <RotateCcw className="w-4 h-4 text-emerald-600" />
+                </button>
+              )}
+
+              {/* Tombol Hapus Permanen */}
               <button
                 type="button"
                 onClick={() => setDeletingViolation(row)}
                 className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                title="Arsipkan Pelanggaran"
+                title="Hapus Pelanggaran (Permanen)"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4 text-rose-500 hover:text-rose-600" />
               </button>
             </>
           )}
@@ -198,18 +272,77 @@ export function ViolationListPage() {
       <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-3 text-xs text-blue-900">
         <ShieldAlert className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold">Integritas Data:</span> Perubahan poin pada halaman ini
-          tidak akan mengubah histori poin pengaduan lama yang sudah dicatat (prinsip Point Snapshot).
+          <span className="font-bold">Integritas Data:</span> Perubahan bobot poin tidak akan
+          mengubah riwayat poin kasus lama yang telah tercatat (Point Snapshot). Anda dapat{' '}
+          <span className="font-semibold text-amber-800">Mengarsipkan</span> pelanggaran agar tidak
+          muncul pada form baru, atau <span className="font-semibold text-rose-800">Menghapus</span>{' '}
+          pelanggaran secara permanen jika sudah tidak dibutuhkan.
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama atau deskripsi..."
+            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-600 text-slate-700"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              statusFilter === 'all'
+                ? 'bg-navy-800 text-white font-semibold'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Semua ({totalCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('active')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              statusFilter === 'active'
+                ? 'bg-emerald-700 text-white font-semibold'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Aktif ({activeCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('archived')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              statusFilter === 'archived'
+                ? 'bg-amber-600 text-white font-semibold'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Diarsipkan ({archivedCount})
+          </button>
         </div>
       </div>
 
       <DataTable
         columns={columns}
-        data={violations}
+        data={filteredViolations}
         isLoading={isLoading}
         error={error}
         onRetry={fetchViolations}
-        emptyMessage="Belum ada data master jenis pelanggaran."
+        emptyMessage={
+          searchQuery
+            ? 'Tidak ditemukan jenis pelanggaran yang sesuai kata kunci.'
+            : statusFilter === 'archived'
+            ? 'Belum ada jenis pelanggaran yang diarsipkan.'
+            : 'Belum ada data master jenis pelanggaran.'
+        }
       />
 
       {/* Create / Edit Modal */}
@@ -270,7 +403,7 @@ export function ViolationListPage() {
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-navy-600 focus:outline-none"
                   >
                     <option value="1">Aktif</option>
-                    <option value="0">Nonaktif</option>
+                    <option value="0">Nonaktif (Arsip)</option>
                   </select>
                 </FormField>
               </div>
@@ -296,12 +429,28 @@ export function ViolationListPage() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Archive / Restore Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!archivingViolation}
+        title={archivingViolation?.is_active ? 'Arsipkan Master Pelanggaran' : 'Aktifkan Kembali Pelanggaran'}
+        message={
+          archivingViolation?.is_active
+            ? `Apakah Anda yakin ingin mengarsipkan jenis pelanggaran "${archivingViolation?.name}"? Pelanggaran ini tidak akan muncul pada pilihan pengaduan baru, namun riwayat kasus lama tetap aman tersimpan.`
+            : `Aktifkan kembali jenis pelanggaran "${archivingViolation?.name}" agar dapat dipilih kembali dalam formulir pengaduan baru?`
+        }
+        confirmLabel={archivingViolation?.is_active ? 'Arsipkan' : 'Aktifkan Kembali'}
+        isDestructive={archivingViolation?.is_active ? true : false}
+        isLoading={isArchiving}
+        onConfirm={handleArchive}
+        onCancel={() => setArchivingViolation(null)}
+      />
+
+      {/* Permanent Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!deletingViolation}
-        title="Arsipkan Master Pelanggaran"
-        message={`Apakah Anda yakin ingin menonaktifkan jenis pelanggaran "${deletingViolation?.name}"? Data kasus historis tetap mempertahankan nilai snapshot.`}
-        confirmLabel="Arsipkan"
+        title="Hapus Pelanggaran Secara Permanen"
+        message={`Apakah Anda yakin ingin menghapus permanen jenis pelanggaran "${deletingViolation?.name}" dari sistem? Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="Hapus Permanen"
         isDestructive={true}
         isLoading={isDeleting}
         onConfirm={handleDelete}

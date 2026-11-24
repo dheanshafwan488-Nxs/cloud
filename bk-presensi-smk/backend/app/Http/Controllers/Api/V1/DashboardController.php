@@ -7,6 +7,8 @@ use App\Models\Attendance;
 use App\Models\Complaint;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\Violation;
+use App\Services\ComplaintService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -66,12 +68,17 @@ class DashboardController extends Controller
                 'level'      => $s->alpa_count >= 5 ? 'critical' : 'warning',
             ]);
 
-        // 2. Siswa dengan akumulasi poin pelanggaran >= 30
+        // 2. Siswa dengan akumulasi poin pelanggaran >= 25
+        $complaintService = app(ComplaintService::class);
+        $masterViolations = Violation::all();
+
         $criticalViolations = Student::with(['class', 'complaints.violations'])
-            ->whereHas('complaints.violations')
+            ->whereHas('complaints')
             ->get()
-            ->map(function ($s) {
-                $totalPoints = $s->complaints->sum(fn($comp) => $comp->violations->sum('pivot.points_snapshot'));
+            ->map(function ($s) use ($complaintService, $masterViolations) {
+                $totalPoints = $s->complaints->sum(
+                    fn($comp) => $complaintService->calculateComplaintPoints($comp, $masterViolations)
+                );
                 return [
                     'id'            => $s->id,
                     'name'          => $s->name,

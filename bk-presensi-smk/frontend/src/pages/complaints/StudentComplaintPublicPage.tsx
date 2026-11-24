@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ShieldAlert,
@@ -49,6 +49,8 @@ export function StudentComplaintPublicPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('')
 
   // Incident & Attachment states
+  const [masterViolations, setMasterViolations] = useState<Array<{ id: number; name: string; description?: string; points: number }>>([])
+  const [selectedViolationIds, setSelectedViolationIds] = useState<number[]>([])
   const [manualViolation, setManualViolation] = useState<string>('')
   const [incidentAt, setIncidentAt] = useState<string>(new Date().toISOString().split('T')[0])
   const [chronology, setChronology] = useState<string>('')
@@ -64,17 +66,23 @@ export function StudentComplaintPublicPage() {
     student_name: string
     class_name: string
     manual_violation: string
+    total_points?: number
     incident_at: string
   } | null>(null)
 
-  // Fetch active classes on mount
+  // Fetch active classes & master violations on mount
   useEffect(() => {
     setIsLoadingClasses(true)
-    complaintService
-      .getPublicClasses()
-      .then((res) => {
-        if (res.success && res.data) {
-          setClasses(res.data)
+    Promise.all([
+      complaintService.getPublicClasses(),
+      complaintService.getPublicViolations().catch(() => ({ success: false, data: [] })),
+    ])
+      .then(([classRes, violationRes]) => {
+        if (classRes.success && classRes.data) {
+          setClasses(classRes.data)
+        }
+        if (violationRes.success && violationRes.data) {
+          setMasterViolations(violationRes.data)
         }
       })
       .catch((err) => {
@@ -135,13 +143,56 @@ export function StudentComplaintPublicPage() {
       })
   }, [selectedClassId])
 
+  const handleToggleMasterViolation = (violationId: number) => {
+    setSelectedViolationIds((prev) =>
+      prev.includes(violationId)
+        ? prev.filter((id) => id !== violationId)
+        : [...prev, violationId]
+    )
+  }
+
+  const isTagSelected = (tag: string): boolean => {
+    const parts = manualViolation
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    return parts.includes(tag)
+  }
+
   const handleSelectTag = (tag: string) => {
-    if (!manualViolation) {
-      setManualViolation(tag)
-    } else if (!manualViolation.includes(tag)) {
-      setManualViolation(`${manualViolation}, ${tag}`)
+    const parts = manualViolation
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (parts.includes(tag)) {
+      const next = parts.filter((p) => p !== tag)
+      setManualViolation(next.join(', '))
+    } else {
+      setManualViolation([...parts, tag].join(', '))
     }
   }
+
+  // Live point calculation: sums selected master violations + any additional manual violation items
+  const liveViolationSummary = useMemo(() => {
+    const selectedMaster = masterViolations.filter((v) => selectedViolationIds.includes(v.id))
+    const selectedNamesLower = new Set(selectedMaster.map((v) => v.name.trim().toLowerCase()))
+
+    const manualParts = manualViolation
+      .split(',')
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0 && !selectedNamesLower.has(p.toLowerCase()))
+
+    const masterPts = selectedMaster.reduce((sum, v) => sum + Number(v.points || 0), 0)
+    const manualPts = manualParts.length * 10
+
+    return {
+      selectedMaster,
+      manualParts,
+      totalPoints: masterPts + manualPts,
+      totalCount: selectedMaster.length + manualParts.length,
+    }
+  }, [masterViolations, selectedViolationIds, manualViolation])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -200,8 +251,8 @@ export function StudentComplaintPublicPage() {
       return
     }
 
-    if (!manualViolation.trim()) {
-      setErrorMessage('Ketik jenis pelanggaran yang terjadi (misal: merokok, bolos, membawa HP, dll).')
+    if (selectedViolationIds.length === 0 && !manualViolation.trim()) {
+      setErrorMessage('Pilih minimal satu jenis pelanggaran atau ketik pelanggaran lainnya di kolom yang tersedia.')
       return
     }
 
@@ -224,7 +275,8 @@ export function StudentComplaintPublicPage() {
         reporter_student_id: Number(reporterStudentId),
         class_id: Number(selectedClassId),
         student_id: Number(selectedStudentId),
-        manual_violation: manualViolation.trim(),
+        violation_ids: selectedViolationIds,
+        manual_violation: manualViolation.trim() || undefined,
         chronology: chronology.trim(),
         incident_at: incidentAt,
         attachment,
@@ -237,6 +289,7 @@ export function StudentComplaintPublicPage() {
           student_name: res.data.student_name,
           class_name: res.data.class_name,
           manual_violation: res.data.manual_violation,
+          total_points: res.data.total_points,
           incident_at: res.data.incident_at,
         })
       }
@@ -252,6 +305,7 @@ export function StudentComplaintPublicPage() {
     setReporterStudentId('')
     setSelectedClassId('')
     setSelectedStudentId('')
+    setSelectedViolationIds([])
     setManualViolation('')
     setIncidentAt(new Date().toISOString().split('T')[0])
     setChronology('')
@@ -337,6 +391,14 @@ export function StudentComplaintPublicPage() {
                   {submittedData.manual_violation}
                 </span>
               </div>
+              {typeof submittedData.total_points === 'number' && (
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-slate-600 font-semibold shrink-0">Total Bobot Poin:</span>
+                  <span className="font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-md">
+                    +{submittedData.total_points} Poin
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="p-4 bg-navy-50 border border-navy-200 rounded-xl text-navy-950 text-xs text-left flex items-start gap-2.5 mb-6 leading-relaxed">
@@ -544,54 +606,103 @@ export function StudentComplaintPublicPage() {
                 </div>
               </div>
 
-              {/* 3. Pelanggaran (Diisi Manual) */}
-              <div className="space-y-3">
-                <label
-                  htmlFor="input-manual-violation"
-                  className="block text-xs font-bold uppercase tracking-wider text-slate-900"
-                >
-                  3. Jenis Pelanggaran (Diisi Manual) <span className="text-rose-600">*</span>
-                </label>
+              {/* 3. Pelanggaran (Pilihan Cepat Master Pelanggaran + Pelanggaran Lainnya) */}
+              <div className="space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label
+                    htmlFor="input-manual-violation"
+                    className="block text-xs font-bold uppercase tracking-wider text-slate-900"
+                  >
+                    3. Jenis Pelanggaran <span className="text-rose-600">*</span>
+                  </label>
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
+                      liveViolationSummary.totalPoints > 0
+                        ? 'bg-rose-50 text-rose-800 border-rose-300'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    Total Poin Pelanggaran: <strong className="font-mono">+{liveViolationSummary.totalPoints} Poin</strong>
+                  </span>
+                </div>
                 <p className="text-xs text-slate-600">
-                  Tuliskan pelanggaran yang terjadi (misal: merokok, bolos pelajaran, membawa HP saat ujian, perundungan, dll) atau klik pilihan cepat di bawah.
+                  Klik pilihan cepat di bawah sesuai pelanggaran yang terjadi (klik lagi / 2x untuk membatalkan), atau ketik pelanggaran lainnya pada kolom di bawah.
                 </p>
 
-                <input
-                  id="input-manual-violation"
-                  type="text"
-                  required
-                  value={manualViolation}
-                  onChange={(e) => setManualViolation(e.target.value)}
-                  placeholder="Contoh: Merokok di belakang toilet, bolos sekolah, membawa HP saat ujian..."
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-navy-600 focus:border-navy-600 transition-all font-semibold shadow-2xs placeholder:text-slate-400"
-                />
-
-                {/* Quick Selection Tags */}
+                {/* Quick Selection Tags from Master Pelanggaran (fallback to static tags if empty) */}
                 <div>
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 mb-2">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Pilihan Cepat (Klik untuk menambahkan):</span>
+                    <span>Pilihan Cepat (Klik untuk memilih, klik lagi untuk membatalkan):</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {QUICK_VIOLATION_TAGS.map((tag) => {
-                      const isSelected = manualViolation.includes(tag)
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => handleSelectTag(tag)}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-navy-900 text-white border-navy-900 shadow-2xs'
-                              : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
-                          }`}
-                        >
-                          {isSelected ? '✓ ' : '+ '}
-                          {tag}
-                        </button>
-                      )
-                    })}
+                  <div className="flex flex-wrap gap-2">
+                    {masterViolations.length > 0
+                      ? masterViolations.map((v) => {
+                          const isSelected = selectedViolationIds.includes(v.id)
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => handleToggleMasterViolation(v.id)}
+                              title={isSelected ? 'Klik lagi untuk membatalkan pilihan ini' : 'Klik untuk menambahkan pelanggaran ini'}
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer select-none inline-flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-navy-900 hover:bg-rose-700 text-white border-navy-900 hover:border-rose-700 shadow-2xs'
+                                  : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                              }`}
+                            >
+                              <span>{isSelected ? `✓ ${v.name}` : `+ ${v.name}`}</span>
+                              <span
+                                className={`font-mono text-[11px] px-1.5 py-0.5 rounded ${
+                                  isSelected
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                }`}
+                              >
+                                +{v.points}p
+                              </span>
+                              {isSelected && <span className="ml-0.5 font-bold">×</span>}
+                            </button>
+                          )
+                        })
+                      : QUICK_VIOLATION_TAGS.map((tag) => {
+                          const isSelected = isTagSelected(tag)
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => handleSelectTag(tag)}
+                              title={isSelected ? 'Klik lagi untuk membatalkan pilihan ini' : 'Klik untuk menambahkan pelanggaran ini'}
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer select-none ${
+                                isSelected
+                                  ? 'bg-navy-900 hover:bg-rose-700 text-white border-navy-900 hover:border-rose-700 shadow-2xs'
+                                  : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                              }`}
+                            >
+                              {isSelected ? `✓ ${tag} ×` : `+ ${tag}`}
+                            </button>
+                          )
+                        })}
                   </div>
+                </div>
+
+                {/* Additional / Other Manual Violation Input */}
+                <div>
+                  <label
+                    htmlFor="input-manual-violation"
+                    className="block text-xs font-bold text-slate-700 mb-1.5"
+                  >
+                    Pelanggaran Lainnya / Tambahan {selectedViolationIds.length === 0 ? <span className="text-rose-600">*</span> : <span className="text-slate-500 font-normal">(Opsional, pisahkan dengan koma • +10 Poin/item)</span>}
+                  </label>
+                  <input
+                    id="input-manual-violation"
+                    type="text"
+                    required={selectedViolationIds.length === 0}
+                    value={manualViolation}
+                    onChange={(e) => setManualViolation(e.target.value)}
+                    placeholder="Contoh: Perundungan, memalak teman, membawa barang terlarang..."
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-navy-600 focus:border-navy-600 transition-all font-semibold shadow-2xs placeholder:text-slate-400"
+                  />
                 </div>
               </div>
 

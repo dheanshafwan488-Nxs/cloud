@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Send, Upload, Lock } from 'lucide-react'
 import { studentService } from '../../services/studentService'
@@ -25,6 +25,7 @@ export function ComplaintCreatePage() {
   const [chronology, setChronology] = useState('')
   const [incidentAt, setIncidentAt] = useState(new Date().toISOString().slice(0, 16))
   const [selectedViolationIds, setSelectedViolationIds] = useState<number[]>([])
+  const [manualViolation, setManualViolation] = useState('')
   const [parentVisible, setParentVisible] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -63,6 +64,17 @@ export function ComplaintCreatePage() {
         : [...prev, violationId]
     )
   }
+
+  const liveTotalPoints = useMemo(() => {
+    const selectedMaster = violations.filter((v) => selectedViolationIds.includes(v.id))
+    const selectedNamesLower = new Set(selectedMaster.map((v) => v.name.trim().toLowerCase()))
+    const masterPts = selectedMaster.reduce((sum, v) => sum + Number(v.points || 0), 0)
+    const manualItems = manualViolation
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !selectedNamesLower.has(s.toLowerCase()))
+    return masterPts + manualItems.length * 10
+  }, [violations, selectedViolationIds, manualViolation])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
@@ -104,6 +116,7 @@ export function ComplaintCreatePage() {
       student_id: Number(selectedStudentId),
       class_id: selectedClassId ? Number(selectedClassId) : undefined,
       reporter_name: reporterName.trim() || undefined,
+      manual_violation: manualViolation.trim() || undefined,
       chronology,
       incident_at: incidentAt,
       violation_ids: selectedViolationIds,
@@ -202,11 +215,22 @@ export function ComplaintCreatePage() {
         </div>
 
         {/* Violations Category Checkboxes */}
-        <div>
-          <label className="block text-sm font-bold text-slate-800 mb-2">
-            Kategori Pelanggaran (Opsional)
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="block text-sm font-bold text-slate-800">
+              Kategori Pelanggaran (Master Pelanggaran BK)
+            </label>
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
+                liveTotalPoints > 0
+                  ? 'bg-rose-50 text-rose-800 border-rose-300'
+                  : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              Total Bobot Poin: <strong className="font-mono">+{liveTotalPoints} Poin</strong>
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
             {violations.map((v) => {
               const isChecked = selectedViolationIds.includes(v.id)
               return (
@@ -231,6 +255,19 @@ export function ComplaintCreatePage() {
                 </label>
               )
             })}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Pelanggaran Lainnya / Tambahan (Opsional, pisahkan koma • +10 Poin/item)
+            </label>
+            <input
+              type="text"
+              value={manualViolation}
+              onChange={(e) => setManualViolation(e.target.value)}
+              placeholder="Contoh: Perundungan verbal, tidak mengikuti upacara..."
+              className="w-full px-3.5 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-navy-600 focus:border-navy-600 focus:outline-none shadow-2xs placeholder:text-slate-400"
+            />
           </div>
         </div>
 

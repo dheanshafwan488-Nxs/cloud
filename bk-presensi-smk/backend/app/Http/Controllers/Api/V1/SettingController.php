@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\TelegramParent;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,7 +83,7 @@ class SettingController extends Controller
         }
 
         try {
-            $response = Http::timeout(6)->get("https://api.telegram.org/bot{$token}/getMe");
+            $response = Http::timeout(12)->get("https://api.telegram.org/bot{$token}/getMe");
 
             if ($response->successful() && $response->json('ok')) {
                 $bot = $response->json('result');
@@ -133,13 +134,32 @@ class SettingController extends Controller
             ], 422);
         }
 
-        $chatId = $request->input('chat_id');
+        $rawChatId = trim($request->input('chat_id'));
+        $botUsername = Setting::get('telegram_bot_username') ?: '@KedisiplinanSiswa_bot';
+
+        $targetChatId = $rawChatId;
+        $cleanUsername = ltrim($rawChatId, '@');
+
+        // Check if user input an @username or non-numeric string
+        if (str_starts_with($rawChatId, '@') || !is_numeric(ltrim($rawChatId, '-'))) {
+            // Attempt to look up in registered telegram parents by username
+            $parent = TelegramParent::whereRaw('LOWER(username) = ?', [strtolower($cleanUsername)])->first();
+            if ($parent && !empty($parent->telegram_id)) {
+                $targetChatId = (string) $parent->telegram_id;
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Format Chat ID tidak valid. Telegram Bot tidak dapat mengirim pesan langsung ke username (@{$cleanUsername}). Gunakan Chat ID berupa deretan angka unik (contoh: 123456789). Buka bot Telegram {$botUsername} lalu kirim /id atau /start untuk melihat Chat ID Anda.",
+                ], 422);
+            }
+        }
+
         $schoolName = Setting::get('school_name', 'SMK IPTEK SANGGABUANA');
         $msg = $request->input('message') ?: "🤖 *UJI COBA NOTIFIKASI BOT TELEGRAM*\n*{$schoolName}*\n\nSelamat! Sistem Bimbingan Konseling & Presensi berhasil terhubung dengan akun Telegram Anda. Notifikasi kehadiran siswa dan panggilan bimbingan konseling akan terkirim secara otomatis melalui bot ini. ✅\n\n_Waktu Uji Coba: " . now()->locale('id')->isoFormat('dddd, D MMMM Y - HH:mm') . " WIB_";
 
         try {
-            $response = Http::timeout(6)->post("https://api.telegram.org/bot{$token}/sendMessage", [
-                'chat_id'    => $chatId,
+            $response = Http::timeout(12)->post("https://api.telegram.org/bot{$token}/sendMessage", [
+                'chat_id'    => $targetChatId,
                 'text'       => $msg,
                 'parse_mode' => 'Markdown',
             ]);
@@ -151,10 +171,20 @@ class SettingController extends Controller
                 ]);
             }
 
-            $description = $response->json('description') ?? 'Periksa kembali Telegram ID / Chat ID Anda.';
+            $rawDescription = (string) ($response->json('description') ?? '');
+            $descLower = strtolower($rawDescription);
+
+            if (str_contains($descLower, 'chat not found')) {
+                $message = "Chat ID '{$rawChatId}' tidak ditemukan di bot. Pastikan Anda sudah membuka bot {$botUsername} di aplikasi Telegram Anda dan menekan tombol 'Mulai' (/start) atau /id terlebih dahulu agar bot diizinkan mengirim pesan ke akun Anda.";
+            } elseif (str_contains($descLower, 'blocked')) {
+                $message = "Bot Telegram diblokir oleh akun penerima. Buka bot {$botUsername} di Telegram Anda dan pilih 'Unblock bot'.";
+            } else {
+                $message = "Gagal mengirim pesan: " . ($rawDescription ?: 'Periksa kembali Telegram ID / Chat ID Anda.');
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => "Gagal mengirim pesan: {$description}",
+                'message' => $message,
             ], 400);
         } catch (\Throwable $e) {
             return response()->json([

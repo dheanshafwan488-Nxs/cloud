@@ -47,6 +47,11 @@ class TelegramNotificationService
 
         $parents = $student->telegramParents()->where('is_verified', true)->get();
         if ($parents->isEmpty()) {
+            Log::info("TelegramNotificationService: no verified parents connected to student.", [
+                'student_id'   => $student->id,
+                'student_name' => $student->name,
+                'status'       => $status,
+            ]);
             return 0;
         }
 
@@ -115,6 +120,11 @@ class TelegramNotificationService
 
         $parents = $student->telegramParents()->where('is_verified', true)->get();
         if ($parents->isEmpty()) {
+            Log::info("TelegramNotificationService: no verified parents connected to student.", [
+                'student_id'   => $student->id,
+                'student_name' => $student->name,
+                'status'       => $status,
+            ]);
             return 0;
         }
 
@@ -174,6 +184,11 @@ class TelegramNotificationService
 
         $parents = $student->telegramParents()->where('is_verified', true)->get();
         if ($parents->isEmpty()) {
+            Log::info("TelegramNotificationService: no verified parents connected to student.", [
+                'student_id'   => $student->id,
+                'student_name' => $student->name,
+                'status'       => $status,
+            ]);
             return 0;
         }
 
@@ -220,7 +235,7 @@ class TelegramNotificationService
                 $payload['reply_markup'] = json_encode($replyMarkup);
             }
 
-            $response = Http::timeout(4)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+            $response = Http::timeout(10)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
 
             if (!$response->successful()) {
                 Log::warning('Telegram send failed: ' . $response->body(), ['telegram_id' => $telegramId]);

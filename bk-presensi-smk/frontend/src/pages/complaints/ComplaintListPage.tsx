@@ -90,43 +90,69 @@ export function ComplaintListPage() {
     },
     {
       key: 'student',
-      header: 'Siswa & Kelas',
+      header: 'Siswa, NIS & Kelas',
       render: (row) => (
         <div>
           <span className="font-bold text-slate-900 block text-sm">
             {row.student?.name || row.student_name || `Siswa ID ${row.student_id}`}
           </span>
-          <span className="block text-xs font-semibold text-slate-600">
-            {row.class?.name || row.class_name || 'Kelas Terdaftar'}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            {(row.student?.nis || row.student_nis) && (
+              <span className="inline-block font-mono text-[11px] font-bold text-navy-900 bg-navy-50 border border-navy-200 px-1.5 py-0.5 rounded">
+                NIS: {row.student?.nis || row.student_nis}
+              </span>
+            )}
+            <span className="text-xs font-semibold text-slate-600">
+              {row.class?.name || row.class_name || 'Kelas Terdaftar'}
+            </span>
+          </div>
         </div>
       ),
     },
     {
       key: 'violation',
-      header: 'Jenis Pelanggaran',
-      render: (row) => (
-        <div className="max-w-xs space-y-1">
-          {row.manual_violation ? (
-            <span className="inline-block px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300">
-              {row.manual_violation}
+      header: 'Jenis Pelanggaran & Poin',
+      render: (row) => {
+        const items = row.violation_items && row.violation_items.length > 0
+          ? row.violation_items
+          : row.violations && row.violations.length > 0
+          ? row.violations.map((v) => ({ id: v.id, name: v.name, points: v.points }))
+          : row.manual_violation
+          ? [{ id: null, name: row.manual_violation, points: row.total_points || 10 }]
+          : []
+
+        const totalPoints = typeof row.total_points === 'number'
+          ? row.total_points
+          : items.reduce((s, it) => s + Number(it.points || 0), 0)
+
+        return (
+          <div className="max-w-xs space-y-1.5">
+            {items.length > 0 ? (
+              <div className="flex flex-wrap gap-1 items-center">
+                {items.map((v, i) => (
+                  <span
+                    key={`${v.id ?? 'm'}-${i}`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-900 border border-rose-200"
+                  >
+                    <span>{v.name}</span>
+                    <span className="font-mono text-[11px] font-bold text-rose-700">+{v.points}p</span>
+                  </span>
+                ))}
+                {totalPoints > 0 && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-rose-600 text-white">
+                    Total +{totalPoints} Poin
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-slate-500 font-medium">-</span>
+            )}
+            <span className="block text-xs text-slate-700 font-medium">
+              Pelapor (Khusus BK): <strong className="text-slate-900">{row.reporter_name || 'Siswa Terdaftar'}</strong>
             </span>
-          ) : row.violations && row.violations.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {row.violations.map((v) => (
-                <span key={v.id} className="text-xs bg-slate-100 text-slate-800 border border-slate-300 px-2 py-0.5 rounded font-semibold">
-                  {v.name}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs text-slate-500 font-medium">-</span>
-          )}
-          <span className="block text-xs text-slate-700 font-medium">
-            Pelapor (Khusus BK): <strong className="text-slate-900">{row.reporter_name || 'Siswa Terdaftar'}</strong>
-          </span>
-        </div>
-      ),
+          </div>
+        )
+      },
     },
     {
       key: 'status',
@@ -216,7 +242,7 @@ export function ComplaintListPage() {
           <SearchInput
             value={search}
             onChange={(val) => setSearch(val)}
-            placeholder="Cari kode laporan / nama siswa..."
+            placeholder="Cari kode laporan / nama siswa / NIS..."
           />
         </div>
 

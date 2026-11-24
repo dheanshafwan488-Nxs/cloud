@@ -6,6 +6,7 @@ export interface CreateComplaintPayload {
   student_id: number
   class_id?: number
   reporter_name?: string
+  manual_violation?: string
   chronology: string
   incident_at: string
   violation_ids?: number[]
@@ -30,7 +31,8 @@ export interface PublicComplaintPayload {
   reporter_student_id: number
   class_id: number
   student_id: number
-  manual_violation: string
+  violation_ids?: number[]
+  manual_violation?: string
   chronology: string
   incident_at: string
   attachment: File
@@ -52,12 +54,21 @@ export const complaintService = {
     return response.data
   },
 
+  async getPublicViolations(): Promise<ApiResponse<Array<{ id: number; name: string; description?: string; points: number }>>> {
+    const response = await apiClient.get<ApiResponse<Array<{ id: number; name: string; description?: string; points: number }>>>(
+      API_ENDPOINTS.PUBLIC.VIOLATIONS
+    )
+    return response.data
+  },
+
   async submitPublicComplaint(payload: PublicComplaintPayload): Promise<ApiResponse<{
     complaint_code: string
     reporter_name: string
     student_name: string
     class_name: string
     manual_violation: string
+    total_points?: number
+    violations?: Array<{ id: number | null; name: string; points: number }>
     incident_at: string
     status: string
     created_at: string
@@ -67,7 +78,12 @@ export const complaintService = {
     formData.append('reporter_student_id', String(payload.reporter_student_id))
     formData.append('class_id', String(payload.class_id))
     formData.append('student_id', String(payload.student_id))
-    formData.append('manual_violation', payload.manual_violation)
+    if (payload.violation_ids && payload.violation_ids.length > 0) {
+      payload.violation_ids.forEach((vid) => formData.append('violation_ids[]', String(vid)))
+    }
+    if (payload.manual_violation && payload.manual_violation.trim() !== '') {
+      formData.append('manual_violation', payload.manual_violation.trim())
+    }
     formData.append('chronology', payload.chronology)
     formData.append('incident_at', payload.incident_at)
     formData.append('attachment', payload.attachment)
@@ -104,6 +120,9 @@ export const complaintService = {
     formData.append('student_id', String(payload.student_id))
     if (payload.class_id) formData.append('class_id', String(payload.class_id))
     if (payload.reporter_name) formData.append('reporter_name', payload.reporter_name)
+    if (payload.manual_violation && payload.manual_violation.trim()) {
+      formData.append('manual_violation', payload.manual_violation.trim())
+    }
     formData.append('chronology', payload.chronology)
     formData.append('incident_at', payload.incident_at)
     formData.append('parent_visible', payload.parent_visible ? '1' : '0')
@@ -131,6 +150,21 @@ export const complaintService = {
     return response.data
   },
 
+  async updateViolations(
+    id: number | string,
+    payload: { violation_ids: number[]; manual_violation?: string }
+  ): Promise<ApiResponse<{
+    id: number
+    manual_violation: string | null
+    violations: import('../types').Violation[]
+    violation_items: Array<{ id: number | null; name: string; points: number; is_manual?: boolean }>
+    total_points: number
+    student_cumulative_points: number
+  }>> {
+    const response = await apiClient.put(API_ENDPOINTS.COMPLAINTS.VIOLATIONS(id), payload)
+    return response.data
+  },
+
   async addFollowup(id: number | string, payload: AddFollowupPayload): Promise<ApiResponse<CaseFollowup>> {
     const response = await apiClient.post<ApiResponse<CaseFollowup>>(
       API_ENDPOINTS.COMPLAINTS.FOLLOWUPS(id),
@@ -145,8 +179,29 @@ export const complaintService = {
   },
 
   getAttachmentUrl(complaintId: number | string, attachmentId: number | string): string {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    const base = import.meta.env.VITE_API_BASE_URL || ''
     return `${base}${API_ENDPOINTS.COMPLAINTS.ATTACHMENT_DOWNLOAD(complaintId, attachmentId)}`
+  },
+
+  async fetchAttachmentBlob(
+    complaintId: number | string,
+    attachmentId: number | string,
+    fallbackMimeType?: string
+  ): Promise<{ blob: Blob; contentType: string }> {
+    const response = await apiClient.get(
+      API_ENDPOINTS.COMPLAINTS.ATTACHMENT_DOWNLOAD(complaintId, attachmentId),
+      { responseType: 'blob' }
+    )
+    const contentType =
+      (response.headers['content-type'] as string | undefined) ||
+      fallbackMimeType ||
+      response.data?.type ||
+      'application/octet-stream'
+    const blob =
+      response.data instanceof Blob
+        ? new Blob([response.data], { type: contentType })
+        : new Blob([response.data], { type: contentType })
+    return { blob, contentType }
   },
 
   async getOfficialLetter(
@@ -156,6 +211,25 @@ export const complaintService = {
     const response = await apiClient.get<ApiResponse<import('../types').OfficialLetterData>>(
       API_ENDPOINTS.COMPLAINTS.LETTER(complaintId),
       { params: { type } }
+    )
+    return response.data
+  },
+
+  async saveLetterDefaults(payload: {
+    letter_kepsek_name?: string
+    letter_kepsek_nip?: string
+    letter_kepsek_title?: string
+    letter_gurubk_name?: string
+    letter_gurubk_nip?: string
+    letter_gurubk_title?: string
+    letter_counselor?: string
+    letter_room?: string
+    letter_time?: string
+    letter_city?: string
+  }): Promise<ApiResponse<Record<string, string>>> {
+    const response = await apiClient.put<ApiResponse<Record<string, string>>>(
+      API_ENDPOINTS.COMPLAINTS.LETTER_DEFAULTS,
+      payload
     )
     return response.data
   },
