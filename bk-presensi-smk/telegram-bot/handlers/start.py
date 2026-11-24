@@ -35,12 +35,9 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await run_student_search(update, context, query, mode="overview")
         return
 
-    chat_id_info = f"🆔 *Chat ID Telegram Anda:* `{user.id}` _(Klik/sentuh angka ID untuk menyalin)_\n\n" if user else ""
-
     message = (
         f"👋 *Selamat Datang, {name}!*\n"
         f"*Bot Layanan Orang Tua — SMK IPTEK SANGGABUANA*\n\n"
-        f"{chat_id_info}"
         "Bapak/Ibu dapat mencari dan memantau kehadiran serta perkembangan kedisiplinan siswa siapa saja menggunakan *tombol menu di bawah ini*:\n\n"
         "• *🔍 Cari Siswa* — Cari cepat berdasarkan Nama, NIS, atau Kelas\n"
         "• *🏫 Pilih Kelas & Siswa* — Pilih kelas lalu klik nama siswa langsung\n"

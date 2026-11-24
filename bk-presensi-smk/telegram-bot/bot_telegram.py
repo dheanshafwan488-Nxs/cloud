@@ -39,7 +39,6 @@ async def post_init(application: Application) -> None:
     """Register compact, essential slash commands in Telegram's Menu button."""
     commands = [
         BotCommand("start", "Menu Utama & Tombol Layanan"),
-        BotCommand("id", "Lihat Chat ID Telegram Anda"),
         BotCommand("cari", "Cari Data Siswa (Nama / NIS / Kelas)"),
         BotCommand("kelas", "Pilih Kelas & Daftar Nama Siswa"),
         BotCommand("absensi", "Cek Absensi Siswa Hari Ini"),

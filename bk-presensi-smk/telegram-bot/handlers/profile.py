@@ -13,8 +13,7 @@ async def profile_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     name = user.full_name or user.first_name or "Bapak/Ibu"
     msg = (
         f"👤 *Profil Pengguna Layanan*\n"
-        f"• *Nama Akun:* {name}\n"
-        f"• *Chat ID:* `{user.id}`\n\n"
+        f"• *Nama Akun:* {name}\n\n"
         "ℹ️ *Status Akses: Terbuka untuk Semua Siswa*\n"
         "Sistem ini tidak membatasi akses pada murid tertentu. Anda dapat langsung mencari, memilih kelas, dan mengecek data presensi serta catatan BK siswa siapa saja secara bebas dan mudah.\n\n"
         "Silakan gunakan tombol menu di bawah untuk mulai mencari data siswa:"
